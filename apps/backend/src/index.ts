@@ -2,20 +2,20 @@
 import cors from "@elysiajs/cors";
 import swagger from "@elysiajs/swagger";
 import { Elysia } from "elysia";
-import { env } from "./config/env";
-import { assignmentRoutes } from "./features/assignments/assignments.routes";
-import { authRoutes } from "./features/auth/auth.routes";
-import { classRoutes } from "./features/classes/classes.routes";
-import { gradingRoutes } from "./features/grading/grading.routes";
-import { groupRoutes } from "./features/groups/groups.routes";
-import { materialRoutes } from "./features/materials/materials.routes";
-import { quizRoutes } from "./features/quiz/quiz.routes";
-import { submissionRoutes } from "./features/submissions/submissions.routes";
+import { env } from "./config/env.js";
+import { assignmentRoutes } from "./features/assignments/assignments.routes.js";
+import { authRoutes } from "./features/auth/auth.routes.js";
+import { classRoutes } from "./features/classes/classes.routes.js";
+import { gradingRoutes } from "./features/grading/grading.routes.js";
+import { groupRoutes } from "./features/groups/groups.routes.js";
+import { materialRoutes } from "./features/materials/materials.routes.js";
+import { quizRoutes } from "./features/quiz/quiz.routes.js";
+import { submissionRoutes } from "./features/submissions/submissions.routes.js";
 import fs from "fs";
 import path from "path";
-import { errorHandler } from "./shared/middleware/error";
-import { getApiLandingHtml } from "./shared/utils/apiLandingHtml";
-import { ok } from "./shared/utils/response";
+import { errorHandler } from "./shared/middleware/error.js";
+import { getApiLandingHtml } from "./shared/utils/apiLandingHtml.js";
+import { ok } from "./shared/utils/response.js";
 
 const getMimeType = (filePath: string) => {
   const ext = path.extname(filePath).toLowerCase();

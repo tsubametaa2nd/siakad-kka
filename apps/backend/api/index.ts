@@ -1,5 +1,5 @@
 // Vercel Serverless Node.js Function Entry Point for ElysiaJS
-import { app } from "../src/index";
+import { app } from "../src/index.js";
 
 export default async function handler(req: any, res: any) {
   if (req instanceof Request) {
