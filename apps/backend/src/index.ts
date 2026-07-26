@@ -63,6 +63,14 @@ export const app = new Elysia()
     set.headers["content-type"] = getMimeType(targetPath);
     return fs.readFileSync(targetPath);
   })
+  .use(authRoutes)
+  .use(classRoutes)
+  .use(groupRoutes)
+  .use(assignmentRoutes)
+  .use(submissionRoutes)
+  .use(quizRoutes)
+  .use(materialRoutes)
+  .use(gradingRoutes)
   .group("/api", (app) =>
     app
       .get("", async ({ headers, set }) => {
