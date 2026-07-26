@@ -3,6 +3,8 @@ import { Elysia } from "elysia";
 import { AppError } from "../utils/errors";
 
 export const errorHandler = new Elysia({ name: "errorHandler" }).onError(({ code, error, set }) => {
+  set.headers["content-type"] = "application/json; charset=utf-8";
+
   if (error instanceof AppError) {
     set.status = error.status;
     return { success: false, error: { code: error.code, message: error.message } };
