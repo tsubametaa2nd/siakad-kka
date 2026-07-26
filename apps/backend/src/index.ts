@@ -68,24 +68,25 @@ export const app = new Elysia()
     set.headers["content-type"] = getMimeType(targetPath);
     return fs.readFileSync(targetPath);
   })
+  .get("/api", async ({ headers, set }) => {
+    const accept = headers["accept"] || "";
+    if (accept.includes("text/html")) {
+      set.headers["content-type"] = "text/html; charset=utf-8";
+      return await getApiLandingHtml();
+    }
+    return ok({ message: "KKA Backend API operational", docs: "/docs", status: "online" });
+  })
+  .get("/api/", async ({ headers, set }) => {
+    const accept = headers["accept"] || "";
+    if (accept.includes("text/html")) {
+      set.headers["content-type"] = "text/html; charset=utf-8";
+      return await getApiLandingHtml();
+    }
+    return ok({ message: "KKA Backend API operational", docs: "/docs", status: "online" });
+  })
   .use(authRoutes)
-  .use(classRoutes)
-  .use(groupRoutes)
-  .use(assignmentRoutes)
-  .use(submissionRoutes)
-  .use(quizRoutes)
-  .use(materialRoutes)
-  .use(gradingRoutes)
   .group("/api", (app) =>
     app
-      .get("", async ({ headers, set }) => {
-        const accept = headers["accept"] || "";
-        if (accept.includes("text/html")) {
-          set.headers["content-type"] = "text/html; charset=utf-8";
-          return await getApiLandingHtml();
-        }
-        return ok({ message: "Ngajar Backend API operational", docs: "/docs", status: "online" });
-      })
       .use(authRoutes)
       .use(classRoutes)
       .use(groupRoutes)
