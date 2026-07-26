@@ -14,15 +14,14 @@ RUN bun install --production
 COPY src ./src
 COPY public ./public
 COPY api ./api
-COPY tsconfig.json drizzle.config.ts ./
+COPY tsconfig.json drizzle.config.ts banner-nino-color.txt ./
 
 # Expose port
 EXPOSE 3000
 
 # Environment defaults
-ENV PORT=3000
-# Note: NODE_ENV set to 'docker' (or non-'production') so app.listen() is executed by src/index.ts
-ENV NODE_ENV=docker
+ENV PORT=4000
+ENV NODE_ENV=production
 
 # Command to run backend
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "api/index.ts"]
