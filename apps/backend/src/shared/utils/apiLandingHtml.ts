@@ -1,4 +1,5 @@
 // Fitur: Generator Halaman Landing API /api dengan Banner Nino & Dokumentasi
+import fs from "fs";
 import path from "path";
 
 interface RGB { r: number; g: number; b: number; }
@@ -74,9 +75,13 @@ export const getApiLandingHtml = async (): Promise<string> => {
   let rawBanner = "";
   try {
     const bannerPath = path.join(process.cwd(), "banner-nino-color.txt");
-    const file = Bun.file(bannerPath);
-    if (await file.exists()) {
-      rawBanner = await file.text();
+    if (fs.existsSync(bannerPath)) {
+      rawBanner = fs.readFileSync(bannerPath, "utf-8");
+    } else {
+      const altPath = path.join(process.cwd(), "apps/backend/banner-nino-color.txt");
+      if (fs.existsSync(altPath)) {
+        rawBanner = fs.readFileSync(altPath, "utf-8");
+      }
     }
   } catch (e) {
     console.error("Gagal membaca banner-nino-color.txt", e);
