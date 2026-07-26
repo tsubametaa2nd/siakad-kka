@@ -6,6 +6,7 @@ import * as authService from "./auth.service";
 import { createAccountSchema, loginSchema, updateProfileSchema, changePasswordSchema } from "./auth.schema";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
+  .get("/login", () => ok({ message: "Auth login endpoint operational. Send POST request with credentials to login.", status: "online" }))
   .post(
     "/login",
     async ({ body }) => ok(await authService.login(body)),

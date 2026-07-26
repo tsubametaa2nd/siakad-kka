@@ -1,6 +1,6 @@
 // Fitur: klien HTTP API backend
 import { toastStore } from '../stores/toast.svelte';
-import { API_BASE_URL, getApiUrl } from '../config/api';
+import { getApiUrl } from '../config/api';
 
 export class ApiError extends Error {
   code?: string;
@@ -13,26 +13,50 @@ export class ApiError extends Error {
   }
 }
 
-const getHeaders = (isFormData = false): Record<string, string> => {
+const getValidToken = (): string | null => {
+  const token = sessionStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined" || token.trim() === "") {
+    sessionStorage.removeItem("token");
+    return null;
+  }
+  return token;
+};
+
+const isPublicEndpoint = (endpoint: string): boolean => {
+  const clean = endpoint.toLowerCase();
+  return (
+    clean.includes("/auth/login") ||
+    clean.includes("/health") ||
+    clean.includes("/docs") ||
+    clean.endsWith("/api") ||
+    clean.endsWith("/api/")
+  );
+};
+
+const getHeaders = (endpoint: string, isFormData = false): Record<string, string> => {
   const headers: Record<string, string> = {};
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
   }
-  const token = sessionStorage.getItem("token");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+
+  if (!isPublicEndpoint(endpoint)) {
+    const token = getValidToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
+
   return headers;
 };
 
 export const apiFetch = async <T = any>(endpoint: string, options: RequestInit = {}, isFormData = false): Promise<T> => {
   const url = getApiUrl(endpoint);
-  const headers = { ...getHeaders(isFormData), ...(options.headers as Record<string, string>) };
+  const headers = { ...getHeaders(endpoint, isFormData), ...(options.headers as Record<string, string>) };
 
   try {
     const res = await fetch(url, { ...options, headers });
 
-    if (res.status === 401) {
+    if (res.status === 401 && !isPublicEndpoint(endpoint)) {
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("user");
       toastStore.add("Sesi berakhir, silakan masuk lagi", "warning");
@@ -80,9 +104,11 @@ export const apiUploadWithProgress = async <T = any>(
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
 
-    const token = sessionStorage.getItem("token");
-    if (token) {
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    if (!isPublicEndpoint(endpoint)) {
+      const token = getValidToken();
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
     }
 
     if (xhr.upload && onProgress) {
@@ -95,7 +121,7 @@ export const apiUploadWithProgress = async <T = any>(
     }
 
     xhr.onload = () => {
-      if (xhr.status === 401) {
+      if (xhr.status === 401 && !isPublicEndpoint(endpoint)) {
         sessionStorage.removeItem("token");
         sessionStorage.removeItem("user");
         toastStore.add("Sesi berakhir, silakan masuk lagi", "warning");

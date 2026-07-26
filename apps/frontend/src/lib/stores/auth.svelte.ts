@@ -11,7 +11,16 @@ class AuthStore {
     try {
       const storedToken = sessionStorage.getItem('token');
       const storedUser = sessionStorage.getItem('user');
-      if (storedToken && storedUser) {
+
+      if (
+        storedToken &&
+        storedToken !== 'null' &&
+        storedToken !== 'undefined' &&
+        storedToken.trim() !== '' &&
+        storedUser &&
+        storedUser !== 'null' &&
+        storedUser !== 'undefined'
+      ) {
         this.token = storedToken;
         this.user = JSON.parse(storedUser);
       } else {
@@ -24,10 +33,12 @@ class AuthStore {
 
   async login(identifier: string, password: string): Promise<UserProfile> {
     const res = await loginApi(identifier, password);
-    this.token = res.token;
-    this.user = res.user;
-    sessionStorage.setItem('token', res.token);
-    sessionStorage.setItem('user', JSON.stringify(res.user));
+    if (res?.token && typeof res.token === 'string' && res.token !== 'null' && res.token !== 'undefined') {
+      this.token = res.token;
+      this.user = res.user;
+      sessionStorage.setItem('token', res.token);
+      sessionStorage.setItem('user', JSON.stringify(res.user));
+    }
     return res.user;
   }
 
