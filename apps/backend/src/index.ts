@@ -1,0 +1,38 @@
+// Fitur: server entry point (updated AstraDB configuration)
+import cors from "@elysiajs/cors";
+import swagger from "@elysiajs/swagger";
+import { Elysia } from "elysia";
+import { env } from "./config/env";
+import { assignmentRoutes } from "./features/assignments/assignments.routes";
+import { authRoutes } from "./features/auth/auth.routes";
+import { classRoutes } from "./features/classes/classes.routes";
+import { gradingRoutes } from "./features/grading/grading.routes";
+import { groupRoutes } from "./features/groups/groups.routes";
+import { materialRoutes } from "./features/materials/materials.routes";
+import { quizRoutes } from "./features/quiz/quiz.routes";
+import { submissionRoutes } from "./features/submissions/submissions.routes";
+import { errorHandler } from "./shared/middleware/error";
+import { ok } from "./shared/utils/response";
+
+export const app = new Elysia()
+  .use(cors())
+  .use(swagger({ path: "/docs" }))
+  .use(errorHandler)
+  .get("/", ({ redirect }) => redirect("/docs"))
+  .get("/health", () => ok({ status: "ok" }))
+  .get("/public/*", ({ params }) => Bun.file("public/" + params["*"]))
+  .group("/api", (app) =>
+    app
+      .get("", () => ok({ message: "Ngajar Backend API operational", docs: "/docs" }))
+      .use(authRoutes)
+      .use(classRoutes)
+      .use(groupRoutes)
+      .use(assignmentRoutes)
+      .use(submissionRoutes)
+      .use(quizRoutes)
+      .use(materialRoutes)
+      .use(gradingRoutes)
+  )
+  .listen(env.PORT);
+
+console.log(`🚀 Server running on port ${app.server?.port}`);

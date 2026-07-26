@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@datastax/astra-db-ts": "^1.5.0",
+    "@elysiajs/cors": "^1.2.0",
+    "@elysiajs/swagger": "^1.2.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "drizzle-orm": "^0.45.2",
+    "elysia": "^1.2.10",
+    "googleapis": "^144.0.0",
+    "jose": "^5.10.0",
+    "postgres": "^3.4.9",
+    "sanitize-html": "^2.14.0"
+  },
+  "devDependencies": {
+    "@types/sanitize-html": "^2.13.0",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.10"
+  }
+}

@@ -35,4 +35,10 @@ yarn-error.log*
 
 # Misc
 .DS_Store
+# Secrets & Credentials
+*-503515-*.json
+*credential*.json
+*service-account*.json
+kka31-*.json
 *.pem
+*.key
