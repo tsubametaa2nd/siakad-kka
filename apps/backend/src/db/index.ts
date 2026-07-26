@@ -18,8 +18,9 @@ const getConnectionString = (): string => {
 };
 
 const connectionString = getConnectionString();
-// Disable prefetch/prepare as it is not supported for Supabase Transaction Pooler mode
-const client = postgres(connectionString || "postgresql://localhost:5432/postgres", { prepare: false, max: 10 });
+const client = connectionString
+  ? postgres(connectionString, { prepare: false, max: 10 })
+  : (null as any);
 
-export const db = drizzle(client, { schema });
+export const db = client ? drizzle(client, { schema }) : (null as any);
 export { schema };

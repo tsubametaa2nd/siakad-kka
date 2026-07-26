@@ -77,10 +77,10 @@ export const getClassAssignments = async (userId: string, userRole: string, clas
 
   const assignments = await assignmentsRepo.findAssignmentsByClass(classId);
   const submissions = await assignmentsRepo.findStudentSubmissionsForClass(classId, userId);
-  const subMap = new Map(submissions.map((s: any) => [s.assignmentId, s]));
+  const subMap = new Map<string, any>(submissions.map((s: any) => [s.assignmentId, s]));
 
   return assignments.map((a: any) => {
-    const sub = subMap.get(a._id);
+    const sub: any = subMap.get(a._id);
     let status = "belum";
     if (sub) {
       if (sub.score !== undefined && sub.score !== null) status = "dinilai";

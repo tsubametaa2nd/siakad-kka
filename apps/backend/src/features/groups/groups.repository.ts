@@ -85,7 +85,7 @@ export const findGroupsByClass = async (classId: string) => {
     .from(schema.groups)
     .where(eq(schema.groups.classId, classId));
 
-  const result = [];
+  const result: any[] = [];
   for (const g of groupRows) {
     const rawMembers = await db
       .select({
@@ -138,7 +138,7 @@ export const findStudentGroups = async (studentId: string) => {
     .innerJoin(schema.groups, eq(schema.groupMembers.groupId, schema.groups.id))
     .where(eq(schema.groupMembers.studentId, studentId));
 
-  const result = [];
+  const result: any[] = [];
   for (const r of rows) {
     const g = r.groups;
     const rawMembers = await db

@@ -56,7 +56,7 @@ export const validateFiles = (filesInput: File | File[] | undefined): File[] => 
 };
 
 export const uploadSubmissionFiles = async (classId: string, assignmentId: string, studentId: string, files: File[]) => {
-  const fileMetas = [];
+  const fileMetas: any[] = [];
   for (const file of files) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${classId}/${assignmentId}/${studentId}/${Date.now()}_${safeName}`;

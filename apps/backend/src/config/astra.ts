@@ -3,17 +3,32 @@ import { DataAPIClient } from "@datastax/astra-db-ts";
 import { env } from "./env";
 
 function createAstraDb() {
-  const client = new DataAPIClient(env.ASTRA_DB_TOKEN, {
-    httpOptions: {
-      client: "fetch", // Gunakan native fetch untuk menghindari bug persistent HTTP/2 session ('The stream has been destroyed') dari fetch-h2
-    },
-  });
-  return client.db(env.ASTRA_DB_ENDPOINT, { keyspace: env.ASTRA_DB_KEYSPACE });
+  if (!env.ASTRA_DB_TOKEN || !env.ASTRA_DB_ENDPOINT) {
+    console.warn("[AstraDB] Warning: ASTRA_DB_TOKEN or ASTRA_DB_ENDPOINT is missing.");
+    return null as any;
+  }
+  try {
+    const client = new DataAPIClient(env.ASTRA_DB_TOKEN, {
+      httpOptions: {
+        client: "fetch",
+      },
+    });
+    return client.db(env.ASTRA_DB_ENDPOINT, { keyspace: env.ASTRA_DB_KEYSPACE });
+  } catch (e) {
+    console.error("[AstraDB] Initialization error:", e);
+    return null as any;
+  }
 }
 
 export let astraDb = createAstraDb();
 
 export const getCollection = (collectionName: string) => {
+  if (!astraDb) {
+    astraDb = createAstraDb();
+  }
+  if (!astraDb) {
+    throw new Error("AstraDB client is not initialized. Please check ASTRA_DB_ENDPOINT and ASTRA_DB_TOKEN in environment variables.");
+  }
   return astraDb.collection(collectionName);
 };
 
@@ -79,10 +94,11 @@ export const execAstra = async <T>(fn: () => Promise<T>, maxRetries = 3): Promis
 
 // Memastikan koleksi materials mengabaikan pengindeksan array 'blocks' (agar file HTML berukuran besar > 8KB tidak terkena limit indeks 8000 bytes)
 export const initAstraCollections = async () => {
+  if (!astraDb) return;
   try {
     await execAstra(() => astraDb.createCollection(ASTRA_COLLECTIONS.MATERIALS, { indexing: { deny: ["blocks"] } }));
   } catch {
-    // Koleksi sudah ada
+    // Koleksi sudah ada atau koneksi belum siap
   }
 };
 

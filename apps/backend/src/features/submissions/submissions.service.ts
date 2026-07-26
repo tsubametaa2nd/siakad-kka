@@ -23,7 +23,7 @@ export const submitAssignment = async (studentId: string, body: SubmitBody) => {
     const studentGroups = await findStudentGroups(studentId);
     const classGroup = studentGroups.find((g: any) => g.class_id === assignment.classId);
     if (!classGroup) throw BadRequest("Tugas kelompok harus dikumpulkan melalui kelompok");
-    groupId = classGroup.id;
+    groupId = (classGroup as any).id;
   }
 
   const assignmentIdStr = String(assignment._id);
@@ -104,13 +104,13 @@ export const getTeacherSubmissions = async (teacherId: string, assignmentId: str
 
   await assertTeacherOwnsClass(teacherId, assignment.classId);
   const classStudents = await findClassStudents(assignment.classId);
-  const studentMap = new Map(classStudents.map((s: any) => [s.id, s]));
+  const studentMap = new Map<string, any>(classStudents.map((s: any) => [s.id, s]));
 
   const submissions = await subRepo.findActiveSubmissionsByAssignment(assignmentId);
   const submissionsWithUrls = await Promise.all(submissions.map((s: any) => filesHelper.attachSignedUrls(s)));
 
   const submissionRows = submissionsWithUrls.map((s: any) => {
-    const student = studentMap.get(s.studentId);
+    const student: any = studentMap.get(s.studentId);
     let statusLabel: "Sudah" | "Telat" | "Dinilai" = "Sudah";
     if (s.score !== undefined && s.score !== null) statusLabel = "Dinilai";
     else if (s.status === "late") statusLabel = "Telat";

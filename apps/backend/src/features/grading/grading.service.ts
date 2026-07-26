@@ -73,12 +73,12 @@ export const gradeStudent = async (teacherId: string, body: GradeBody) => {
     const studentGroups = await findStudentGroups(targetStudentId);
     const classGroup = studentGroups.find((g: any) => g.class_id === assignment.classId);
     if (classGroup) {
-      const members = await findRemainingMembers(classGroup.id);
+      const members = await findRemainingMembers((classGroup as any).id);
       studentIds = members.map((m: any) => m.student_id);
     }
   }
 
-  const results = [];
+  const results: any[] = [];
   for (const sid of studentIds) {
     const res = await processSingleStudentGrade(teacherId, assignment, cls, sid, numScore, body.feedback || "");
     results.push(res);
@@ -93,7 +93,7 @@ export const bulkGrade = async (teacherId: string, body: BulkGradeBody) => {
   await assertTeacherOwnsClass(teacherId, assignment.classId);
 
   const cls = await findClassById(assignment.classId);
-  const results = [];
+  const results: any[] = [];
   let successCount = 0;
   let failCount = 0;
 
@@ -136,13 +136,13 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
   const grades = await gradingRepo.findGradesByAssignment(String(assignment._id));
 
   // Map studentId → grade untuk lookup cepat
-  const gradeMap = new Map(grades.map((g: any) => [g.studentId, g]));
+  const gradeMap = new Map<string, any>(grades.map((g: any) => [g.studentId, g]));
   // Map studentId → submission
-  const submissionMap = new Map(submissions.map((s: any) => [s.studentId, s]));
+  const submissionMap = new Map<string, any>(submissions.map((s: any) => [s.studentId, s]));
 
   const submissionRows = await Promise.all(classStudents.map(async (student: any) => {
-    const sub = submissionMap.get(student.id);
-    const grade = gradeMap.get(student.id);
+    const sub: any = submissionMap.get(student.id);
+    const grade: any = gradeMap.get(student.id);
 
     let files: any[] = [];
     if (sub?.files && sub.files.length > 0) {
