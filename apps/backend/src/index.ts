@@ -87,3 +87,6 @@ if (!process.env.VERCEL) {
   app.listen(env.PORT);
   console.log(`🚀 Server running on port ${app.server?.port}`);
 }
+
+export default app;
+
