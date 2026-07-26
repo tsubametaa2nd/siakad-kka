@@ -12,18 +12,33 @@ import { materialRoutes } from "./features/materials/materials.routes";
 import { quizRoutes } from "./features/quiz/quiz.routes";
 import { submissionRoutes } from "./features/submissions/submissions.routes";
 import { errorHandler } from "./shared/middleware/error";
+import { getApiLandingHtml } from "./shared/utils/apiLandingHtml";
 import { ok } from "./shared/utils/response";
 
 export const app = new Elysia()
   .use(cors())
   .use(swagger({ path: "/docs" }))
   .use(errorHandler)
-  .get("/", ({ redirect }) => redirect("/docs"))
+  .get("/", async ({ headers, set }) => {
+    const accept = headers["accept"] || "";
+    if (accept.includes("text/html")) {
+      set.headers["content-type"] = "text/html; charset=utf-8";
+      return await getApiLandingHtml();
+    }
+    return ok({ message: "Ngajar Backend API operational", docs: "/docs", status: "online" });
+  })
   .get("/health", () => ok({ status: "ok" }))
   .get("/public/*", ({ params }) => Bun.file("public/" + params["*"]))
   .group("/api", (app) =>
     app
-      .get("", () => ok({ message: "Ngajar Backend API operational", docs: "/docs" }))
+      .get("", async ({ headers, set }) => {
+        const accept = headers["accept"] || "";
+        if (accept.includes("text/html")) {
+          set.headers["content-type"] = "text/html; charset=utf-8";
+          return await getApiLandingHtml();
+        }
+        return ok({ message: "Ngajar Backend API operational", docs: "/docs", status: "online" });
+      })
       .use(authRoutes)
       .use(classRoutes)
       .use(groupRoutes)
