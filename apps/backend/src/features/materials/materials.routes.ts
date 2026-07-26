@@ -1,4 +1,6 @@
 // Fitur: endpoint materi
+import fs from "fs";
+import path from "path";
 import { Elysia } from "elysia";
 import { authGuard, requireRole } from "../../shared/middleware/auth";
 import { ok } from "../../shared/utils/response";
@@ -8,7 +10,14 @@ import { createMaterialSchema, updateMaterialSchema } from "./materials.schema";
 export const materialRoutes = new Elysia({ prefix: "/materials" })
   .get("/public/viewer.js", async ({ set }) => {
     set.headers["content-type"] = "application/javascript; charset=utf-8";
-    return Bun.file("public/viewer.js");
+    const candidates = [
+      path.join(process.cwd(), "public/viewer.js"),
+      path.join(process.cwd(), "apps/backend/public/viewer.js"),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return fs.readFileSync(p, "utf-8");
+    }
+    return "";
   })
   .use(authGuard)
   // Route siswa: ambil materi dari semua kelas yang diikuti (opsional filter class_id)

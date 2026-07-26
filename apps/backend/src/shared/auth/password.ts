@@ -1,10 +1,12 @@
-// Fitur: hash & verifikasi password (argon2)
+import { hash, verify } from "@node-rs/argon2";
+
 export const hashPassword = async (password: string): Promise<string> => {
-  return await Bun.password.hash(password, {
-    algorithm: "argon2id",
+  return await hash(password, {
+    algorithm: 2, // 2 = argon2id
   });
 };
 
 export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
-  return await Bun.password.verify(password, hash);
+  return await verify(hash, password);
 };
+
