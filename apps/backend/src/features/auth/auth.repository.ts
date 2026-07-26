@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import type { Role } from "../../shared/types";
 
 export const findCredentialByUsername = async (username: string) => {
-  const rows = await db
+  const cleanUsername = username.trim();
+  let rows = await db
     .select({
       profile_id: schema.credentials.profileId,
       username: schema.credentials.username,
@@ -18,8 +19,27 @@ export const findCredentialByUsername = async (username: string) => {
     })
     .from(schema.credentials)
     .innerJoin(schema.profiles, eq(schema.credentials.profileId, schema.profiles.id))
-    .where(eq(schema.credentials.username, username))
+    .where(eq(schema.credentials.username, cleanUsername))
     .limit(1);
+
+  if (!rows[0]) {
+    rows = await db
+      .select({
+        profile_id: schema.credentials.profileId,
+        username: schema.credentials.username,
+        password_hash: schema.credentials.passwordHash,
+        profiles: {
+          id: schema.profiles.id,
+          full_name: schema.profiles.fullName,
+          role: schema.profiles.role,
+          identifier: schema.profiles.identifier,
+        },
+      })
+      .from(schema.credentials)
+      .innerJoin(schema.profiles, eq(schema.credentials.profileId, schema.profiles.id))
+      .where(eq(schema.profiles.identifier, cleanUsername))
+      .limit(1);
+  }
 
   return rows[0] || null;
 };
