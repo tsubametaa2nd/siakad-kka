@@ -83,7 +83,7 @@ export const app = new Elysia()
       .use(gradingRoutes)
   );
 
-if (!process.env.VERCEL) {
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   app.listen(env.PORT);
   console.log(`🚀 Server running on port ${app.server?.port}`);
 }
