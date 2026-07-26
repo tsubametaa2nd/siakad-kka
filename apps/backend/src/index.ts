@@ -33,7 +33,12 @@ const getMimeType = (filePath: string) => {
 };
 
 export const app = new Elysia()
-  .use(cors())
+  .use(cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  }))
   .use(swagger({ path: "/docs" }))
   .use(errorHandler)
   .get("/", async ({ headers, set }) => {
