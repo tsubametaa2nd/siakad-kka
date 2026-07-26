@@ -1,8 +1,11 @@
 import { config } from "dotenv";
 config({ override: true });
 
-// Fitur: environment variables dengan fallback aman untuk Vercel Serverless
 export const env = {
+  ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS || "https://kka.utaaa.my.id,https://kka-fe.vercel.app,http://localhost:5173,http://localhost:3000")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
   PORT: Number(process.env.PORT || 3000),
   AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET || "default_jwt_secret_key_kka_31_smkn",
   SUPABASE_URL: process.env.SUPABASE_URL || "",

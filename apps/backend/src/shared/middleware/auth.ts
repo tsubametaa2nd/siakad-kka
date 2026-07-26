@@ -6,7 +6,11 @@ import { Forbidden, Unauthorized } from "../utils/errors";
 
 export const authGuard = new Elysia({ name: "authGuard" }).derive(
   { as: "global" },
-  async ({ headers }): Promise<{ user: AuthUser }> => {
+  async ({ request, headers }): Promise<{ user: AuthUser }> => {
+    if (request.method === "OPTIONS") {
+      return { user: null as any };
+    }
+
     const authHeader = headers.authorization || headers.Authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw Unauthorized("Header Authorization tidak ditemukan atau format salah");

@@ -34,9 +34,17 @@ const getMimeType = (filePath: string) => {
 
 export const app = new Elysia()
   .use(cors({
-    origin: true,
+    origin: (request: Request) => {
+      const origin = request.headers.get("origin");
+      if (!origin) return true;
+      return (
+        env.ALLOWED_ORIGINS.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".utaaa.my.id")
+      );
+    },
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    allowedHeaders: ["content-type", "authorization", "accept", "x-requested-with"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }))
   .use(swagger({ path: "/docs" }))
