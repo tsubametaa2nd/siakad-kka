@@ -29,8 +29,9 @@ export const findQuizByIdForStudent = async (id: string) => {
 
 export const findQuizzesByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getQuizzesCol().find({ classId }, { sort: { createdAt: -1 }, limit });
-    return await cursor.toArray();
+    const cursor = getQuizzesCol().find({ classId }, { limit });
+    const docs = await cursor.toArray();
+    return docs.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   });
 };
 

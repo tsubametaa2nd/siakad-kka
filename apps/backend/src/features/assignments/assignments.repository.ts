@@ -18,15 +18,17 @@ export const findAssignmentById = async (id: string) => {
 
 export const findAssignmentsByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAssignmentsCol().find({ classId }, { sort: { createdAt: -1 }, limit });
-    return await cursor.toArray();
+    const cursor = getAssignmentsCol().find({ classId }, { limit });
+    const docs = await cursor.toArray();
+    return docs.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   });
 };
 
 export const findAssignmentsByTeacher = async (teacherId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAssignmentsCol().find({ teacherId }, { sort: { createdAt: -1 }, limit });
-    return await cursor.toArray();
+    const cursor = getAssignmentsCol().find({ teacherId }, { limit });
+    const docs = await cursor.toArray();
+    return docs.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   });
 };
 
@@ -36,7 +38,7 @@ export const findAssignmentsByClassIds = async (classIds: string[], limit = 1000
     const col = getAssignmentsCol();
     const results = await Promise.all(
       classIds.map((classId) =>
-        col.find({ classId }, { sort: { createdAt: -1 }, limit }).toArray()
+        col.find({ classId }, { limit }).toArray()
       )
     );
     return results.flat().sort((a: any, b: any) => {
