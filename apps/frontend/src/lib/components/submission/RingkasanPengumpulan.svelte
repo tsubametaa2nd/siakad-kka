@@ -54,6 +54,15 @@
     </div>
   {/if}
 
+  {#if submission.content}
+    <div class="flex flex-col gap-1.5">
+      <span class="font-display font-black text-xs uppercase">Teks Jawaban / Catatan:</span>
+      <div class="bg-white p-3 border-2 border-black font-body text-xs font-medium whitespace-pre-line text-gray-900">
+        {submission.content}
+      </div>
+    </div>
+  {/if}
+
   {#if submission.files && submission.files.length > 0}
     <div class="flex flex-col gap-1.5">
       <span class="font-display font-black text-xs uppercase">Berkas Terlampir ({submission.files.length}):</span>

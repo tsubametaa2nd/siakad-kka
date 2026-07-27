@@ -4,12 +4,16 @@ import { t } from "elysia";
 export const submitSchema = t.Object({
   assignmentId: t.Optional(t.String()),
   assignment_id: t.Optional(t.String()),
+  content: t.Optional(t.Any()),
+  text: t.Optional(t.Any()),
   links: t.Optional(t.Any()),
   files: t.Optional(t.Any()),
 });
 
 export const updateSubmissionSchema = t.Object({
   version: t.Optional(t.Any()),
+  content: t.Optional(t.Any()),
+  text: t.Optional(t.Any()),
   links: t.Optional(t.Any()),
   files: t.Optional(t.Any()),
 });

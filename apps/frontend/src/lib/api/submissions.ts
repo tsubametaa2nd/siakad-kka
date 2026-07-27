@@ -15,6 +15,7 @@ export interface SubmissionItem {
   submitted_at: string;
   files: SubmissionFile[];
   links: string[];
+  content?: string | null;
   score?: number | null;
   feedback?: string | null;
   is_group_leader?: boolean;
@@ -30,6 +31,7 @@ export interface TeacherSubmissionRow {
   submitted_at?: string;
   files?: SubmissionFile[];
   links?: string[];
+  content?: string | null;
   score?: number | null;
   feedback?: string | null;
 }
@@ -51,6 +53,7 @@ const normalizeSubmissionItem = (raw: any): SubmissionItem | null => {
     submitted_at: raw.createdAt || raw.submitted_at || new Date().toISOString(),
     files: raw.files || [],
     links: raw.links || [],
+    content: raw.content || raw.text || raw.text_content || null,
     score: raw.score,
     feedback: raw.feedback,
     is_group_leader: raw.isGroupLeader || raw.is_group_leader,
@@ -71,12 +74,16 @@ export const submitAssignmentApi = async (
   assignmentId: string,
   files: File[],
   links: string[],
+  content?: string,
   onProgress?: (percent: number) => void
 ): Promise<SubmissionItem> => {
   const formData = new FormData();
   formData.append('assignmentId', assignmentId);
   formData.append('assignment_id', assignmentId);
   formData.append('links', JSON.stringify(links));
+  if (content !== undefined && content !== null) {
+    formData.append('content', content);
+  }
   files.forEach((f) => formData.append('files', f));
   const res = await api.upload<any>('/submissions', formData, onProgress, 'POST');
   return normalizeSubmissionItem(res)!;
@@ -87,11 +94,15 @@ export const updateSubmissionApi = async (
   version: number,
   files: File[],
   links: string[],
+  content?: string,
   onProgress?: (percent: number) => void
 ): Promise<SubmissionItem> => {
   const formData = new FormData();
   formData.append('version', String(version));
   formData.append('links', JSON.stringify(links));
+  if (content !== undefined && content !== null) {
+    formData.append('content', content);
+  }
   files.forEach((f) => formData.append('files', f));
   return api.upload<SubmissionItem>(`/submissions/${id}`, formData, onProgress, 'PUT');
 };

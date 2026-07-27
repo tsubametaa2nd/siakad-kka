@@ -27,14 +27,16 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     async ({ user, body }) => ok(await authService.changePassword(user.id, body as any)),
     { body: changePasswordSchema }
   )
-  .use(requireRole("teacher"))
-  .post(
-    "/accounts",
-    async ({ body }) => ok(await authService.createAccount(body)),
-    { body: createAccountSchema }
-  )
-  .get(
-    "/students",
-    async () => ok(await authService.getAllStudents())
+  .guard({ beforeHandle: requireRole("teacher") }, (app) =>
+    app
+      .post(
+        "/accounts",
+        async ({ body }) => ok(await authService.createAccount(body)),
+        { body: createAccountSchema }
+      )
+      .get(
+        "/students",
+        async () => ok(await authService.getAllStudents())
+      )
   );
 

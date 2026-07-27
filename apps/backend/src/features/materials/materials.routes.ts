@@ -28,12 +28,6 @@ export const materialRoutes = new Elysia({ prefix: "/materials" })
     return await materialsService.renderMaterialView(user.id, user.role, params.slug);
   })
   .get("/slug/:slug", async ({ user, params }) => ok(await materialsService.getMaterialDetail(user.id, user.role, params.slug)))
-  .use(requireRole("teacher"))
-  .get("", async ({ user }) => ok(await materialsService.getTeacherMaterials(user.id)))
-  .post("", async ({ user, body }) => ok(await materialsService.createMaterial(user.id, body)), { body: createMaterialSchema })
-  .put("/:id", async ({ user, params, body }) => ok(await materialsService.updateMaterial(user.id, params.id, body)), { body: updateMaterialSchema })
-  .delete("/:id", async ({ user, params }) => ok(await materialsService.deleteMaterial(user.id, params.id)))
-  .use(authGuard)
   .post("/:id/presence", async ({ user, params }) => {
     return ok(
       materialsService.recordPresence(params.id, {
@@ -50,4 +44,11 @@ export const materialRoutes = new Elysia({ prefix: "/materials" })
     set.headers["content-type"] = "text/html; charset=utf-8";
     return await materialsService.renderMaterialView(user.id, user.role, params.id);
   })
-  .get("/:id", async ({ user, params }) => ok(await materialsService.getMaterialDetail(user.id, user.role, params.id)));
+  .get("/:id", async ({ user, params }) => ok(await materialsService.getMaterialDetail(user.id, user.role, params.id)))
+  .guard({ beforeHandle: requireRole("teacher") }, (app) =>
+    app
+      .get("", async ({ user }) => ok(await materialsService.getTeacherMaterials(user.id)))
+      .post("", async ({ user, body }) => ok(await materialsService.createMaterial(user.id, body)), { body: createMaterialSchema })
+      .put("/:id", async ({ user, params, body }) => ok(await materialsService.updateMaterial(user.id, params.id, body)), { body: updateMaterialSchema })
+      .delete("/:id", async ({ user, params }) => ok(await materialsService.deleteMaterial(user.id, params.id)))
+  );

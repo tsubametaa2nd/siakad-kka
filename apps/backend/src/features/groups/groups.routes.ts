@@ -8,10 +8,12 @@ import { createGroupSchema, joinGroupSchema, leaveGroupSchema, inviteGroupSchema
 export const groupRoutes = new Elysia({ prefix: "/groups" })
   .use(authGuard)
   .get("/class/:classId", async ({ params }) => ok(await groupsService.getClassGroups(params.classId)))
-  .use(requireRole("student"))
-  .get("/my", async ({ user }) => ok(await groupsService.getStudentGroups(user.id)))
-  .post("", async ({ user, body }) => ok(await groupsService.createGroup(user.id, body)), { body: createGroupSchema })
-  .post("/join", async ({ user, body }) => ok(await groupsService.joinGroup(user.id, body)), { body: joinGroupSchema })
-  .post("/invite", async ({ user, body }) => ok(await groupsService.inviteStudent(user.id, body)), { body: inviteGroupSchema })
-  .post("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema })
-  .delete("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema });
+  .guard({ beforeHandle: requireRole("student") }, (app) =>
+    app
+      .get("/my", async ({ user }) => ok(await groupsService.getStudentGroups(user.id)))
+      .post("", async ({ user, body }) => ok(await groupsService.createGroup(user.id, body)), { body: createGroupSchema })
+      .post("/join", async ({ user, body }) => ok(await groupsService.joinGroup(user.id, body)), { body: joinGroupSchema })
+      .post("/invite", async ({ user, body }) => ok(await groupsService.inviteStudent(user.id, body)), { body: inviteGroupSchema })
+      .post("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema })
+      .delete("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema })
+  );

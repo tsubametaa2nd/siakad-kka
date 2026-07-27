@@ -82,6 +82,11 @@
           </td>
           <td class="p-3 border-r-2 border-black text-xs">
             <div class="flex flex-col gap-1">
+              {#if row.content}
+                <div class="bg-yellow-50 p-1.5 border border-black font-body text-[11px] font-bold line-clamp-2 max-w-xs" title={row.content}>
+                  💬 {row.content}
+                </div>
+              {/if}
               {#each row.files || [] as file}
                 <a href={file.url} target="_blank" rel="noopener" class="underline font-mono text-[11px] hover:text-accent flex items-center gap-1">
                   <FileText size={13} class="shrink-0" />
@@ -96,7 +101,7 @@
                   <ExternalLink size={12} class="shrink-0" />
                 </a>
               {/each}
-              {#if (!row.files || row.files.length === 0) && (!row.links || row.links.length === 0)}
+              {#if !row.content && (!row.files || row.files.length === 0) && (!row.links || row.links.length === 0)}
                 <span class="text-gray-500 italic">-</span>
               {/if}
             </div>

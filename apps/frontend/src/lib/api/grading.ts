@@ -29,6 +29,7 @@ export interface SubmissionGradingRow {
   submitted_at?: string;
   files?: Array<{ name: string; url: string; size?: number; type?: string }>;
   links?: string[];
+  content?: string | null;
   score?: number | null;
   feedback?: string | null;
   syncedToSheet?: boolean;

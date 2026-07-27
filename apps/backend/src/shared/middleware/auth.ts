@@ -5,7 +5,7 @@ import type { AuthUser, Role } from "../types";
 import { Forbidden, Unauthorized } from "../utils/errors";
 
 export const authGuard = new Elysia({ name: "authGuard" }).derive(
-  { as: "scoped" },
+  { as: "global" },
   async ({ request, headers }): Promise<{ user: AuthUser }> => {
     if (request.method === "OPTIONS") {
       return { user: null as any };
@@ -24,12 +24,9 @@ export const authGuard = new Elysia({ name: "authGuard" }).derive(
 
 export const requireRole = (allowedRole: Role | Role[]) => {
   const allowed = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
-  return new Elysia({ name: "requireRole" })
-    .use(authGuard)
-    .derive({ as: "scoped" }, ({ user }: { user?: AuthUser }): { user: AuthUser } => ({ user: user! }))
-    .onBeforeHandle(({ user }) => {
-      if (!user || !allowed.includes(user.role)) {
-        throw Forbidden("Anda tidak memiliki hak akses untuk tindakan ini");
-      }
-    });
+  return ({ user }: { user?: AuthUser }) => {
+    if (!user || !allowed.includes(user.role)) {
+      throw Forbidden("Anda tidak memiliki hak akses untuk tindakan ini");
+    }
+  };
 };

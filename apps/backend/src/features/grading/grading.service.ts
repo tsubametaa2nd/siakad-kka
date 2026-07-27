@@ -172,6 +172,7 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
       submitted_at: sub?.submittedAt || sub?.createdAt,
       files,
       links: sub?.links || [],
+      content: sub?.content || sub?.text || null,
       score: grade?.score !== undefined ? grade.score : (sub?.score !== undefined ? sub.score : null),
       feedback: grade?.feedback || null,
       syncedToSheet: grade?.syncedToSheet || false,

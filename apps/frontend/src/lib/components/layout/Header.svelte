@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Menu } from 'lucide-svelte';
+  import amertarvaLogo from '../../../assets/amertarva.svg';
   import Button from '../ui/Button.svelte';
   import ConfirmDialog from '../ui/ConfirmDialog.svelte';
   import { authStore } from '../../stores/auth.svelte';
@@ -33,11 +34,9 @@
       <Menu size={20} />
     </button>
 
-    <div class="flex items-center gap-2">
-      <span class="font-display font-black text-xl uppercase tracking-wider text-black">
-        SIAKAD <span class="bg-primary px-1.5 py-0.5 border border-black text-xs">SMK</span>
-      </span>
-    </div>
+    <a href={authStore.user?.role === 'teacher' ? '#/guru' : '#/siswa'} class="flex items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-black">
+      <img src={amertarvaLogo} alt="Amertarva Logo" class="h-7 sm:h-8 w-auto object-contain" />
+    </a>
   </div>
 
   {#if authStore.isAuthenticated && authStore.user}

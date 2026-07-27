@@ -161,6 +161,15 @@
 
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div class="xl:col-span-7 flex flex-col gap-4">
+          {#if currentSub.content}
+            <Card tone="surface" class="border-2 border-black p-3">
+              <span class="font-display font-black text-xs uppercase block mb-1">Teks Jawaban / Catatan Siswa:</span>
+              <div class="font-body text-xs whitespace-pre-line text-gray-900 bg-white p-3 border border-black">
+                {currentSub.content}
+              </div>
+            </Card>
+          {/if}
+
           <PratinjauBerkas files={currentSub.files || []} />
 
           {#if currentSub.links && currentSub.links.length > 0}

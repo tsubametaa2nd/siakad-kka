@@ -4,6 +4,7 @@
   import { toastStore } from '../../stores/toast.svelte';
   import Button from '../ui/Button.svelte';
   import Card from '../ui/Card.svelte';
+  import Textarea from '../ui/Textarea.svelte';
   import ConfirmDialog from '../ui/ConfirmDialog.svelte';
   import DaftarBerkas from './DaftarBerkas.svelte';
   import InputTautan from './InputTautan.svelte';
@@ -20,6 +21,7 @@
 
   let selectedFiles = $state<File[]>([]);
   let links = $state<string[]>([]);
+  let textContent = $state('');
   let isDragOver = $state(false);
   let uploading = $state(false);
   let uploadProgress = $state(0);
@@ -29,6 +31,7 @@
   $effect(() => {
     if (isEditing && existingSubmission) {
       links = [...(existingSubmission.links || [])];
+      textContent = existingSubmission.content || '';
     }
   });
 
@@ -98,6 +101,7 @@
 
     try {
       const finalLinks = links.filter((l) => l.trim().length > 0);
+      const finalContent = textContent.trim();
       let res: SubmissionItem;
 
       if (isEditing && existingSubmission) {
@@ -106,6 +110,7 @@
           existingSubmission.version || 1,
           selectedFiles,
           finalLinks,
+          finalContent,
           (p: number) => { uploadProgress = p; }
         );
         toastStore.add('Pengumpulan tugas berhasil diperbarui!', 'success');
@@ -114,6 +119,7 @@
           assignmentId,
           selectedFiles,
           finalLinks,
+          finalContent,
           (p: number) => { uploadProgress = p; }
         );
         toastStore.add('Tugas berhasil dikumpulkan!', 'success');
@@ -133,15 +139,15 @@
     e.preventDefault();
     error = '';
 
-    if (selectedFiles.length === 0 && links.length === 0) {
-      error = 'Mohon unggah setidaknya 1 berkas atau 1 tautan tugas.';
+    if (selectedFiles.length === 0 && links.length === 0 && textContent.trim().length === 0) {
+      error = 'Mohon ketikkan jawaban teks, unggah berkas, atau isi tautan tugas.';
       return;
     }
 
     executeSubmission();
   };
 
-  const canSubmit = $derived(selectedFiles.length > 0 || links.some((l) => l.trim().length > 0));
+  const canSubmit = $derived(selectedFiles.length > 0 || links.some((l) => l.trim().length > 0) || textContent.trim().length > 0);
 </script>
 
 <Card tone="surface" class="border-[3px] border-black shadow-brutal flex flex-col gap-4">
@@ -150,7 +156,7 @@
       {isEditing ? 'Ubah Pengumpulan Tugas' : 'Kirim Pengumpulan Tugas'}
     </h3>
     <p class="font-body font-medium text-xs text-gray-800">
-      Silakan unggah dokumen atau lampirkan tautan hasil pengerjaan Anda di bawah ini.
+      Ketikkan jawaban Anda langsung, unggah dokumen, atau lampirkan tautan hasil pengerjaan di bawah ini.
     </p>
   </div>
 
@@ -161,6 +167,14 @@
   {/if}
 
   <form onsubmit={startSubmissionProcess} class="flex flex-col gap-4">
+    <Textarea
+      label="Teks Jawaban / Catatan Pengumpulan (Opsional)"
+      placeholder="Ketikkan jawaban tugas atau penjelasan Anda di sini..."
+      bind:value={textContent}
+      disabled={uploading}
+      rows={4}
+    />
+
     <div
       class="border-[3px] border-dashed border-black p-6 text-center cursor-pointer transition-colors duration-100 flex flex-col items-center justify-center gap-2 select-none {isDragOver ? 'bg-primary' : 'bg-white hover:bg-yellow-50'}"
       ondragover={(e) => { e.preventDefault(); isDragOver = true; }}
@@ -173,7 +187,7 @@
     >
       <input id="file-drop-input" type="file" multiple onchange={handleFileInputChange} class="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" />
       <FolderUp size={36} class="text-black" />
-      <div class="font-display font-black text-sm uppercase">Seret & Lepas Berkas ke Sini</div>
+      <div class="font-display font-black text-sm uppercase">Seret & Lepas Berkas ke Sini (Opsional)</div>
       <div class="font-body text-xs text-gray-700">atau klik untuk memilih dari perangkat</div>
       <div class="font-mono text-[11px] font-bold text-gray-600">PDF, DOCX, PPTX, XLSX, PNG, JPG, ZIP (Maks 10 MB per berkas, Maks 5 berkas)</div>
     </div>

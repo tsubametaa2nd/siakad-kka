@@ -3,6 +3,7 @@ import { isStudentEnrolled, findClassStudents } from "../classes/classes.reposit
 import { assertTeacherOwnsClass } from "../classes/classes.service";
 import { findAssignmentById } from "../assignments/assignments.repository";
 import { findStudentGroups } from "../groups/groups.repository";
+import { findProfileById } from "../auth/auth.repository";
 import { BadRequest, Conflict, Forbidden, NotFound } from "../../shared/utils/errors";
 import * as filesHelper from "./submissions.files";
 import * as subRepo from "./submissions.repository";
@@ -38,9 +39,14 @@ export const submitAssignment = async (studentId: string, body: SubmitBody) => {
     throw Conflict("Kamu sudah mengumpulkan tugas ini", "ALREADY_SUBMITTED");
   }
 
+  const rawContent = body.content || body.text;
+  const content = typeof rawContent === "string" ? rawContent.trim() : undefined;
+
   const links = filesHelper.validateAndParseLinks(body.links);
   const files = filesHelper.validateFiles(body.files);
-  if (links.length === 0 && files.length === 0) throw BadRequest("Minimal harus mengumpulkan satu file atau satu link");
+  if (links.length === 0 && files.length === 0 && (!content || content.length === 0)) {
+    throw BadRequest("Minimal harus mengumpulkan satu file, satu link, atau menuliskan teks jawaban");
+  }
 
   const uploadedFiles = await filesHelper.uploadSubmissionFiles(assignment.classId, assignmentIdStr, studentId, files);
   const status = new Date().getTime() > new Date(assignment.deadline).getTime() ? "late" : "submitted";
@@ -50,6 +56,7 @@ export const submitAssignment = async (studentId: string, body: SubmitBody) => {
     classId: assignment.classId,
     studentId,
     groupId,
+    content: content || undefined,
     files: uploadedFiles,
     links,
     status,
@@ -65,14 +72,23 @@ export const updateSubmission = async (studentId: string, submissionId: string, 
   if (sub.status === "graded" || sub.score !== undefined) throw Conflict("Pengumpulan yang sudah dinilai tidak dapat diubah", "ALREADY_GRADED");
   if (Number(body.version) !== sub.version) throw Conflict("Data sudah berubah, silakan muat ulang halaman", "VERSION_MISMATCH");
 
+  const rawContent = body.content || body.text;
+  const content = typeof rawContent === "string" ? rawContent.trim() : undefined;
+
   const links = filesHelper.validateAndParseLinks(body.links);
   const files = filesHelper.validateFiles(body.files);
-  if (links.length === 0 && files.length === 0) throw BadRequest("Minimal harus mengumpulkan satu file atau satu link");
+  if (links.length === 0 && files.length === 0 && (!content || content.length === 0)) {
+    throw BadRequest("Minimal harus mengumpulkan satu file, satu link, atau menuliskan teks jawaban");
+  }
 
   await filesHelper.removeStorageFiles(sub.files);
   const newUploadedFiles = await filesHelper.uploadSubmissionFiles(sub.classId, sub.assignmentId, studentId, files);
 
-  const updated = await subRepo.updateSubmissionWithVersion(submissionId, sub.version, { files: newUploadedFiles, links });
+  const updated = await subRepo.updateSubmissionWithVersion(submissionId, sub.version, {
+    files: newUploadedFiles,
+    links,
+    content: content !== undefined ? content : sub.content,
+  });
   if (!updated) throw Conflict("Data sudah berubah, silakan muat ulang halaman", "VERSION_MISMATCH");
 
   return await filesHelper.attachSignedUrls(updated);
@@ -93,9 +109,31 @@ export const getStudentSubmission = async (studentId: string, assignmentId: stri
   const assignment = await findAssignmentById(assignmentId);
   if (!assignment) throw NotFound("Tugas tidak ditemukan");
 
-  const sub = await subRepo.findActiveSubmission(assignmentId, studentId);
+  let groupId: string | undefined;
+  if (assignment.type === "group" && assignment.groupSubmissionMode !== "individual") {
+    const studentGroups = await findStudentGroups(studentId);
+    const classGroup = studentGroups.find((g: any) => g.class_id === assignment.classId);
+    if (classGroup) groupId = (classGroup as any).id;
+  }
+
+  const sub = await subRepo.findActiveSubmission(assignmentId, studentId, groupId);
   if (!sub) return null;
-  return await filesHelper.attachSignedUrls(sub);
+
+  const attached = await filesHelper.attachSignedUrls(sub);
+  if (assignment.type === "group" && assignment.groupSubmissionMode !== "individual") {
+    const isLeader = sub.studentId === studentId;
+    let submitterName: string | undefined;
+    if (!isLeader) {
+      const studentDoc = await findProfileById(sub.studentId);
+      submitterName = studentDoc?.full_name;
+    }
+    return {
+      ...attached,
+      isGroupLeader: isLeader,
+      submittedByName: submitterName,
+    };
+  }
+  return attached;
 };
 
 export const getTeacherSubmissions = async (teacherId: string, assignmentId: string) => {
@@ -128,6 +166,7 @@ export const getTeacherSubmissions = async (teacherId: string, assignmentId: str
         url: f.url || f.signedUrl,
       })),
       links: s.links || [],
+      content: s.content || s.text || null,
       score: s.score,
       feedback: s.feedback,
     };
