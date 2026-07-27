@@ -142,39 +142,48 @@ export const getTeacherSubmissions = async (teacherId: string, assignmentId: str
 
   await assertTeacherOwnsClass(teacherId, assignment.classId);
   const classStudents = await findClassStudents(assignment.classId);
-  const studentMap = new Map<string, any>(classStudents.map((s: any) => [s.id, s]));
 
-  const submissions = await subRepo.findActiveSubmissionsByAssignment(assignmentId);
+  const submissions = await subRepo.findActiveSubmissionsByAssignment(assignmentId, 1000);
   const submissionsWithUrls = await Promise.all(submissions.map((s: any) => filesHelper.attachSignedUrls(s)));
+  const subMap = new Map<string, any>(submissionsWithUrls.map((s: any) => [s.studentId, s]));
 
-  const submissionRows = submissionsWithUrls.map((s: any) => {
-    const student: any = studentMap.get(s.studentId);
-    let statusLabel: "Sudah" | "Telat" | "Dinilai" = "Sudah";
-    if (s.score !== undefined && s.score !== null) statusLabel = "Dinilai";
-    else if (s.status === "late") statusLabel = "Telat";
+  let submittedCount = 0;
+
+  const submissionRows = classStudents.map((student: any) => {
+    const s: any = subMap.get(student.id);
+    let statusLabel: "Sudah" | "Telat" | "Dinilai" | "Belum" = "Belum";
+
+    if (s) {
+      submittedCount++;
+      if (s.score !== undefined && s.score !== null) statusLabel = "Dinilai";
+      else if (s.status === "late") statusLabel = "Telat";
+      else statusLabel = "Sudah";
+    }
 
     return {
-      id: s._id || s.id,
-      student_id: s.studentId,
+      id: s?._id || s?.id || `unsubmitted-${student.id}`,
+      student_id: student.id,
       student_name: student?.name || student?.full_name || "Siswa",
       identifier: student?.identifier || "",
       status: statusLabel,
-      submitted_at: s.createdAt || s.submittedAt || new Date().toISOString(),
-      files: (s.files || []).map((f: any) => ({
-        name: f.name,
-        size: f.size,
-        url: f.url || f.signedUrl,
-      })),
-      links: s.links || [],
-      content: s.content || s.text || null,
-      score: s.score,
-      feedback: s.feedback,
+      submitted_at: s ? (s.createdAt || s.submittedAt || new Date().toISOString()) : null,
+      files: s
+        ? (s.files || []).map((f: any) => ({
+            name: f.name,
+            size: f.size,
+            url: f.url || f.signedUrl,
+          }))
+        : [],
+      links: s?.links || [],
+      content: s?.content || s?.text || null,
+      score: s?.score,
+      feedback: s?.feedback,
     };
   });
 
   return {
     total_students: classStudents.length,
-    submitted_count: submissionRows.length,
+    submitted_count: submittedCount,
     submissions: submissionRows,
   };
 };

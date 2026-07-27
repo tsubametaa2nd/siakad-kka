@@ -16,27 +16,27 @@ export const findAssignmentById = async (id: string) => {
   return execAstra(async () => getAssignmentsCol().findOne({ _id: id }));
 };
 
-export const findAssignmentsByClass = async (classId: string) => {
+export const findAssignmentsByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAssignmentsCol().find({ classId }, { sort: { createdAt: -1 } });
+    const cursor = getAssignmentsCol().find({ classId }, { sort: { createdAt: -1 }, limit });
     return await cursor.toArray();
   });
 };
 
-export const findAssignmentsByTeacher = async (teacherId: string) => {
+export const findAssignmentsByTeacher = async (teacherId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAssignmentsCol().find({ teacherId }, { sort: { createdAt: -1 } });
+    const cursor = getAssignmentsCol().find({ teacherId }, { sort: { createdAt: -1 }, limit });
     return await cursor.toArray();
   });
 };
 
-export const findAssignmentsByClassIds = async (classIds: string[]) => {
+export const findAssignmentsByClassIds = async (classIds: string[], limit = 1000) => {
   if (!classIds || classIds.length === 0) return [];
   return execAstra(async () => {
     const col = getAssignmentsCol();
     const results = await Promise.all(
       classIds.map((classId) =>
-        col.find({ classId }, { sort: { createdAt: -1 } }).toArray()
+        col.find({ classId }, { sort: { createdAt: -1 }, limit }).toArray()
       )
     );
     return results.flat().sort((a: any, b: any) => {
@@ -72,16 +72,16 @@ export const deleteSubmissionsByAssignment = async (assignmentId: string) => {
   });
 };
 
-export const findStudentSubmissionsForClass = async (classId: string, studentId: string, groupIds: string[] = []) => {
+export const findStudentSubmissionsForClass = async (classId: string, studentId: string, groupIds: string[] = [], limit = 1000) => {
   return execAstra(async () => {
     const col = getSubmissionsCol();
-    const cursorByStudent = col.find({ classId, studentId, isDeleted: { $ne: true } });
+    const cursorByStudent = col.find({ classId, studentId, isDeleted: { $ne: true } }, { limit });
     const studentSubs = await cursorByStudent.toArray();
 
     if (!groupIds || groupIds.length === 0) return studentSubs;
 
     const groupSubPromises = groupIds.map((groupId) =>
-      col.find({ classId, groupId, isDeleted: { $ne: true } }).toArray()
+      col.find({ classId, groupId, isDeleted: { $ne: true } }, { limit }).toArray()
     );
     const groupSubsResults = await Promise.all(groupSubPromises);
     const all = [...studentSubs, ...groupSubsResults.flat()];
@@ -96,16 +96,16 @@ export const findStudentSubmissionsForClass = async (classId: string, studentId:
   });
 };
 
-export const findStudentAllSubmissions = async (studentId: string, groupIds: string[] = []) => {
+export const findStudentAllSubmissions = async (studentId: string, groupIds: string[] = [], limit = 1000) => {
   return execAstra(async () => {
     const col = getSubmissionsCol();
-    const cursorByStudent = col.find({ studentId, isDeleted: { $ne: true } });
+    const cursorByStudent = col.find({ studentId, isDeleted: { $ne: true } }, { limit });
     const studentSubs = await cursorByStudent.toArray();
 
     if (!groupIds || groupIds.length === 0) return studentSubs;
 
     const groupSubPromises = groupIds.map((groupId) =>
-      col.find({ groupId, isDeleted: { $ne: true } }).toArray()
+      col.find({ groupId, isDeleted: { $ne: true } }, { limit }).toArray()
     );
     const groupSubsResults = await Promise.all(groupSubPromises);
     const all = [...studentSubs, ...groupSubsResults.flat()];

@@ -27,9 +27,9 @@ export const findQuizByIdForStudent = async (id: string) => {
   });
 };
 
-export const findQuizzesByClass = async (classId: string) => {
+export const findQuizzesByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getQuizzesCol().find({ classId }, { sort: { createdAt: -1 } });
+    const cursor = getQuizzesCol().find({ classId }, { sort: { createdAt: -1 }, limit });
     return await cursor.toArray();
   });
 };
@@ -78,9 +78,9 @@ export const saveAttemptResult = async (
   });
 };
 
-export const findQuizResults = async (quizId: string) => {
+export const findQuizResults = async (quizId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAttemptsCol().find({ quizId, submittedAt: { $exists: true } });
+    const cursor = getAttemptsCol().find({ quizId, submittedAt: { $exists: true } }, { limit });
     return await cursor.toArray();
   });
 };
@@ -94,25 +94,25 @@ export const updateAttemptProgress = async (attemptId: string, studentId: string
   });
 };
 
-export const findInProgressAttempts = async (quizId: string) => {
+export const findInProgressAttempts = async (quizId: string, limit = 1000) => {
   return execAstra(async () => {
     // Siswa yang sudah startedAt tapi belum submittedAt
-    const cursor = getAttemptsCol().find({ quizId, startedAt: { $exists: true }, submittedAt: { $exists: false } });
+    const cursor = getAttemptsCol().find({ quizId, startedAt: { $exists: true }, submittedAt: { $exists: false } }, { limit });
     return await cursor.toArray();
   });
 };
 
-export const findStudentAttempts = async (studentId: string) => {
+export const findStudentAttempts = async (studentId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getAttemptsCol().find({ studentId });
+    const cursor = getAttemptsCol().find({ studentId }, { limit });
     return await cursor.toArray();
   });
 };
 
-export const findQuizLeaderboard = async (quizId: string) => {
+export const findQuizLeaderboard = async (quizId: string, limit = 1000) => {
   return execAstra(async () => {
     // Ambil semua attempt yang sudah selesai
-    const cursor = getAttemptsCol().find({ quizId, submittedAt: { $exists: true } });
+    const cursor = getAttemptsCol().find({ quizId, submittedAt: { $exists: true } }, { limit });
     const attempts = await cursor.toArray();
 
     // Sort: score DESC, timeTakenSeconds ASC (nilai lebih tinggi dulu, jika sama → lebih cepat menang)

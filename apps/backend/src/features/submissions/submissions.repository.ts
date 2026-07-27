@@ -45,9 +45,9 @@ export const softDeleteSubmission = async (id: string) => {
   });
 };
 
-export const findActiveSubmissionsByAssignment = async (assignmentId: string) => {
+export const findActiveSubmissionsByAssignment = async (assignmentId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getSubmissionsCol().find({ assignmentId, isDeleted: { $ne: true } }, { sort: { submittedAt: -1 } });
+    const cursor = getSubmissionsCol().find({ assignmentId, isDeleted: { $ne: true } }, { sort: { submittedAt: -1 }, limit });
     return await cursor.toArray();
   });
 };

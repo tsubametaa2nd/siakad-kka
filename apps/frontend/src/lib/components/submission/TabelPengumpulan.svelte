@@ -40,9 +40,12 @@
     return 'neutral';
   };
 
-  const goToGrading = () => {
+  const goToGrading = (studentId?: string) => {
     if (assignmentId) {
-      window.location.hash = `#/guru/tugas/${assignmentId}/nilai`;
+      const targetUrl = studentId
+        ? `#/guru/tugas/${assignmentId}/nilai?studentId=${encodeURIComponent(studentId)}`
+        : `#/guru/tugas/${assignmentId}/nilai`;
+      window.location.hash = targetUrl;
     }
   };
 </script>
@@ -55,7 +58,7 @@
     <div class="flex items-center gap-2">
       <Badge tone="info">{Math.round((data.submitted_count / (data.total_students || 1)) * 100)}% Pengumpulan</Badge>
       {#if assignmentId && data.submitted_count > 0}
-        <Button variant="primary" size="sm" onclick={goToGrading}>
+        <Button variant="primary" size="sm" onclick={() => goToGrading()}>
           <span class="flex items-center gap-1.5"><PenLine size={14} /> Mulai Menilai</span>
         </Button>
       {/if}
@@ -114,10 +117,10 @@
             {/if}
           </td>
           <td class="p-3 text-xs">
-            {#if row.status !== 'Belum' && assignmentId}
+            {#if assignmentId}
               <button
                 type="button"
-                onclick={goToGrading}
+                onclick={() => goToGrading(row.student_id)}
                 class="px-3 py-1.5 bg-primary text-black border-2 border-black font-display font-black text-xs uppercase shadow-brutal-sm hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform flex items-center gap-1.5"
               >
                 <PenLine size={13} />

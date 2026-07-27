@@ -22,26 +22,38 @@
 
   const activeFile = $derived(files[activeIndex] || null);
 
+  const getFileExt = (f: FileInfo | null) => {
+    if (!f) return '';
+    if (f.name) {
+      const parts = f.name.split('.');
+      if (parts.length > 1) {
+        const ext = parts.pop()?.toLowerCase();
+        if (ext) return ext;
+      }
+    }
+    if (f.url) {
+      const cleanUrl = f.url.split('?')[0].split('#')[0];
+      const parts = cleanUrl.split('.');
+      if (parts.length > 1) {
+        const ext = parts.pop()?.toLowerCase();
+        if (ext) return ext;
+      }
+    }
+    return '';
+  };
+
   const isImage = $derived.by(() => {
     if (!activeFile) return false;
-    const url = activeFile.url.toLowerCase();
-    const name = activeFile.name.toLowerCase();
-    return (
-      url.endsWith('.png') ||
-      url.endsWith('.jpg') ||
-      url.endsWith('.jpeg') ||
-      url.endsWith('.webp') ||
-      name.endsWith('.png') ||
-      name.endsWith('.jpg') ||
-      name.endsWith('.jpeg')
-    );
+    if (activeFile.type && activeFile.type.startsWith('image/')) return true;
+    const ext = getFileExt(activeFile);
+    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'].includes(ext);
   });
 
   const isPdf = $derived.by(() => {
     if (!activeFile) return false;
-    const url = activeFile.url.toLowerCase();
-    const name = activeFile.name.toLowerCase();
-    return url.endsWith('.pdf') || name.endsWith('.pdf');
+    if (activeFile.type === 'application/pdf') return true;
+    const ext = getFileExt(activeFile);
+    return ext === 'pdf';
   });
 
   $effect(() => {

@@ -132,16 +132,30 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
 
   const cls = await findClassById(assignment.classId);
   const classStudents = await findClassStudents(assignment.classId);
-  const submissions = await findActiveSubmissionsByAssignment(assignmentId);
-  const grades = await gradingRepo.findGradesByAssignment(String(assignment._id));
+  const submissions = await findActiveSubmissionsByAssignment(assignmentId, 1000);
+  const grades = await gradingRepo.findGradesByAssignment(String(assignment._id), 1000);
 
   // Map studentId → grade untuk lookup cepat
   const gradeMap = new Map<string, any>(grades.map((g: any) => [g.studentId, g]));
   // Map studentId → submission
   const submissionMap = new Map<string, any>(submissions.map((s: any) => [s.studentId, s]));
+  // Map groupId → submission (untuk tugas kelompok perwakilan)
+  const groupSubMap = new Map<string, any>();
+  submissions.forEach((s: any) => {
+    if (s.groupId) groupSubMap.set(s.groupId, s);
+  });
 
   const submissionRows = await Promise.all(classStudents.map(async (student: any) => {
-    const sub: any = submissionMap.get(student.id);
+    let sub: any = submissionMap.get(student.id);
+
+    if (!sub && assignment.type === "group" && assignment.groupSubmissionMode !== "individual") {
+      const studentGroups = await findStudentGroups(student.id);
+      const classGroup = studentGroups.find((g: any) => g.class_id === assignment.classId);
+      if (classGroup) {
+        sub = groupSubMap.get((classGroup as any).id);
+      }
+    }
+
     const grade: any = gradeMap.get(student.id);
 
     let files: any[] = [];
@@ -153,6 +167,7 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
         name: f.name,
         size: f.size,
         url: f.url || f.signedUrl || "",
+        type: f.mime || f.type || "",
       }));
     }
 

@@ -24,38 +24,38 @@ export const markSubmissionGraded = async (assignmentId: string, studentId: stri
   });
 };
 
-export const findGradesByAssignment = async (assignmentId: string) => {
+export const findGradesByAssignment = async (assignmentId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getGradesCol().find({ assignmentId });
+    const cursor = getGradesCol().find({ assignmentId }, { limit });
     return await cursor.toArray();
   });
 };
 
-export const findStudentGrades = async (studentId: string) => {
+export const findStudentGrades = async (studentId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getGradesCol().find({ studentId });
+    const cursor = getGradesCol().find({ studentId }, { limit });
     return await cursor.toArray();
   });
 };
 
-export const findUnsyncedGradesByClass = async (classId: string) => {
+export const findUnsyncedGradesByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getGradesCol().find({ classId, syncedToSheet: { $ne: true } });
+    const cursor = getGradesCol().find({ classId, syncedToSheet: { $ne: true } }, { limit });
     return await cursor.toArray();
   });
 };
 
-export const countUngradedSubmissionsByClass = async (classId: string): Promise<number> => {
+export const countUngradedSubmissionsByClass = async (classId: string, limit = 1000): Promise<number> => {
   return execAstra(async () => {
-    const cursor = getSubmissionsCol().find({ classId, status: { $ne: "graded" }, isDeleted: { $ne: true } });
+    const cursor = getSubmissionsCol().find({ classId, status: { $ne: "graded" }, isDeleted: { $ne: true } }, { limit });
     const docs = await cursor.toArray();
     return docs.length;
   });
 };
 
-export const countUnsyncedGradesByClass = async (classId: string): Promise<number> => {
+export const countUnsyncedGradesByClass = async (classId: string, limit = 1000): Promise<number> => {
   return execAstra(async () => {
-    const cursor = getGradesCol().find({ classId, syncedToSheet: { $ne: true } });
+    const cursor = getGradesCol().find({ classId, syncedToSheet: { $ne: true } }, { limit });
     const docs = await cursor.toArray();
     return docs.length;
   });

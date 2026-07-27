@@ -30,6 +30,7 @@
   let loading = $state(true);
   let submitting = $state(false);
   let error = $state('');
+  let initialStudentIdSelected = $state(false);
 
   let scoreInput = $state<string | number>('');
   let feedbackInput = $state('');
@@ -50,6 +51,24 @@
 
   $effect(() => {
     if (assignmentId) loadGradingData();
+  });
+
+  $effect(() => {
+    if (data && filteredSubmissions.length > 0 && !initialStudentIdSelected) {
+      const hash = window.location.hash;
+      const qIndex = hash.indexOf('?');
+      if (qIndex !== -1) {
+        const params = new URLSearchParams(hash.slice(qIndex + 1));
+        const targetSid = params.get('studentId') || params.get('student_id');
+        if (targetSid) {
+          const idx = filteredSubmissions.findIndex((s) => s.student_id === targetSid);
+          if (idx !== -1) {
+            currentIndex = idx;
+          }
+        }
+      }
+      initialStudentIdSelected = true;
+    }
   });
 
   $effect(() => {
@@ -150,27 +169,51 @@
           <Button variant="surface" size="sm" disabled={currentIndex === 0} onclick={() => { currentIndex -= 1; focusScoreInput(); }}>
             <span class="flex items-center gap-1"><ChevronLeft size={16} /> Siswa Sebelum</span>
           </Button>
-          <span class="font-display font-black text-sm uppercase">
-            Siswa {currentIndex + 1} dari {filteredSubmissions.length}
-          </span>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span class="font-display font-black text-sm uppercase bg-yellow-200 px-2 py-0.5 border border-black">
+              Siswa {currentIndex + 1} dari {filteredSubmissions.length}
+            </span>
+            <span class="font-display font-black text-base uppercase text-black">
+              {currentSub.student_name} {#if currentSub.identifier}<span class="font-mono text-xs text-gray-700">({currentSub.identifier})</span>{/if}
+            </span>
+          </div>
           <Button variant="surface" size="sm" disabled={currentIndex === filteredSubmissions.length - 1} onclick={() => { currentIndex += 1; focusScoreInput(); }}>
             <span class="flex items-center gap-1">Siswa Berikut <ChevronRight size={16} /></span>
           </Button>
         </div>
+        <Badge tone={currentSub.status === 'Dinilai' ? 'warning' : currentSub.status === 'Sudah' ? 'info' : currentSub.status === 'Telat' ? 'danger' : 'neutral'}>
+          {currentSub.status === 'Dinilai' ? `Sudah Dinilai (${currentSub.score})` : currentSub.status}
+        </Badge>
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div class="xl:col-span-7 flex flex-col gap-4">
           {#if currentSub.content}
-            <Card tone="surface" class="border-2 border-black p-3">
-              <span class="font-display font-black text-xs uppercase block mb-1">Teks Jawaban / Catatan Siswa:</span>
-              <div class="font-body text-xs whitespace-pre-line text-gray-900 bg-white p-3 border border-black">
+            <Card tone="surface" class="border-[3px] border-black p-4 bg-yellow-50 shadow-brutal">
+              <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-2">
+                <span class="font-display font-black text-sm uppercase text-black">💬 Teks Jawaban / Catatan Siswa:</span>
+                {#if currentSub.submitted_at}
+                  <span class="font-mono text-xs text-gray-600 font-bold">{new Date(currentSub.submitted_at).toLocaleString('id-ID')}</span>
+                {/if}
+              </div>
+              <div class="font-body text-sm whitespace-pre-line text-black bg-white p-4 border-2 border-black leading-relaxed">
                 {currentSub.content}
               </div>
             </Card>
           {/if}
 
-          <PratinjauBerkas files={currentSub.files || []} />
+          {#if currentSub.files && currentSub.files.length > 0}
+            <PratinjauBerkas files={currentSub.files} />
+          {:else if !currentSub.content && (!currentSub.links || currentSub.links.length === 0)}
+            <Card tone="surface" class="border-[3px] border-black p-8 text-center bg-blue-50 shadow-brutal">
+              <span class="font-display font-black text-base uppercase text-gray-700 block mb-1">
+                Belum Ada Pengumpulan
+              </span>
+              <span class="font-body text-xs italic text-gray-600">
+                Siswa ini belum mengirimkan jawaban dalam bentuk berkas maupun teks.
+              </span>
+            </Card>
+          {/if}
 
           {#if currentSub.links && currentSub.links.length > 0}
             <Card tone="base" class="border-2 border-black p-3">

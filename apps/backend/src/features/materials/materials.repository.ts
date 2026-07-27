@@ -29,27 +29,27 @@ export const findMaterialByIdOrSlug = async (idOrSlug: string) => {
   });
 };
 
-export const findMaterialsByClass = async (classId: string) => {
+export const findMaterialsByClass = async (classId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getMaterialsCol().find({ classId }, { sort: { createdAt: -1 } });
+    const cursor = getMaterialsCol().find({ classId }, { sort: { createdAt: -1 }, limit });
     return await cursor.toArray();
   });
 };
 
-export const findMaterialsByTeacher = async (teacherId: string) => {
+export const findMaterialsByTeacher = async (teacherId: string, limit = 1000) => {
   return execAstra(async () => {
-    const cursor = getMaterialsCol().find({ teacherId }, { sort: { createdAt: -1 } });
+    const cursor = getMaterialsCol().find({ teacherId }, { sort: { createdAt: -1 }, limit });
     return await cursor.toArray();
   });
 };
 
-export const findMaterialsByClassIds = async (classIds: string[]) => {
+export const findMaterialsByClassIds = async (classIds: string[], limit = 1000) => {
   if (!classIds || classIds.length === 0) return [];
   return execAstra(async () => {
     const col = getMaterialsCol();
     const results = await Promise.all(
       classIds.map((classId) =>
-        col.find({ classId }, { sort: { createdAt: -1 } }).toArray()
+        col.find({ classId }, { sort: { createdAt: -1 }, limit }).toArray()
       )
     );
     // Gabungkan semua, urutkan dari terbaru
