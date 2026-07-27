@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Menu } from 'lucide-svelte';
-  import amertarvaLogo from '../../../assets/amertarva.svg';
-  import Button from '../ui/Button.svelte';
-  import ConfirmDialog from '../ui/ConfirmDialog.svelte';
-  import { authStore } from '../../stores/auth.svelte';
+  import { Menu } from "lucide-svelte";
+  import amertarvaLogo from "../../../assets/amertarva.svg";
+  import Button from "../ui/Button.svelte";
+  import ConfirmDialog from "../ui/ConfirmDialog.svelte";
+  import { authStore } from "../../stores/auth.svelte";
 
   interface Props {
     onToggleSidebar?: () => void;
@@ -14,7 +14,11 @@
   let showLogoutConfirm = $state(false);
 
   const roleLabel = $derived(
-    authStore.user?.role === 'teacher' ? 'Guru' : authStore.user?.role === 'student' ? 'Siswa' : '-'
+    authStore.user?.role === "teacher"
+      ? "Guru"
+      : authStore.user?.role === "student"
+        ? "Siswa"
+        : "-",
   );
 
   const handleConfirmLogout = () => {
@@ -23,7 +27,9 @@
   };
 </script>
 
-<header class="sticky top-0 z-30 bg-base border-b-[3px] border-black px-4 py-3 flex items-center justify-between gap-4 select-none">
+<header
+  class="sticky top-0 z-30 bg-base border-b-[3px] border-black px-4 py-3 flex items-center justify-between gap-4 select-none"
+>
   <div class="flex items-center gap-3">
     <button
       type="button"
@@ -34,15 +40,24 @@
       <Menu size={20} />
     </button>
 
-    <a href={authStore.user?.role === 'teacher' ? '#/guru' : '#/siswa'} class="flex items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-black">
-      <img src={amertarvaLogo} alt="Amertarva Logo" class="h-7 sm:h-8 w-auto object-contain" />
+    <a
+      href={authStore.user?.role === "teacher" ? "#/guru" : "#/siswa"}
+      class="flex items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-black"
+    >
+      <img
+        src={amertarvaLogo}
+        alt="Amertarva Logo"
+        class="h-7 sm:h-8 w-auto object-contain"
+      />
     </a>
   </div>
 
   {#if authStore.isAuthenticated && authStore.user}
     <div class="flex items-center gap-4">
       <div class="hidden sm:flex flex-col text-right">
-        <span class="font-display font-black text-sm text-black truncate max-w-[180px]">
+        <span
+          class="font-display font-black text-sm text-black truncate max-w-[180px]"
+        >
           {authStore.user.name}
         </span>
         <span class="font-mono text-xs font-bold text-gray-700 uppercase">
@@ -53,7 +68,7 @@
       <Button
         variant="accent"
         size="sm"
-        onclick={() => showLogoutConfirm = true}
+        onclick={() => (showLogoutConfirm = true)}
         ariaLabel="Keluar dari akun"
       >
         Keluar
