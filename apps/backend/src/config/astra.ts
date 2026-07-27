@@ -92,13 +92,33 @@ export const execAstra = async <T>(fn: () => Promise<T>, maxRetries = 3): Promis
   return await fn();
 };
 
-// Memastikan koleksi materials mengabaikan pengindeksan array 'blocks' (agar file HTML berukuran besar > 8KB tidak terkena limit indeks 8000 bytes)
+const LARGE_FIELDS_DENY = [
+  "content",
+  "text",
+  "description",
+  "htmlContent",
+  "blocks",
+  "files",
+  "links",
+  "attachments",
+  "questions",
+  "answers",
+  "feedback"
+];
+
 export const initAstraCollections = async () => {
   if (!astraDb) return;
-  try {
-    await execAstra(() => astraDb.createCollection(ASTRA_COLLECTIONS.MATERIALS, { indexing: { deny: ["blocks"] } }));
-  } catch {
-    // Koleksi sudah ada atau koneksi belum siap
+  const collections = Object.values(ASTRA_COLLECTIONS);
+  for (const colName of collections) {
+    try {
+      await execAstra(() =>
+        astraDb.createCollection(colName, {
+          indexing: { deny: LARGE_FIELDS_DENY }
+        })
+      );
+    } catch {
+    // Koleksi sudah ada atau opsi indeks telah diatur
+    }
   }
 };
 
