@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { FileText, RotateCw, ExternalLink, AlertTriangle, Paperclip } from 'lucide-svelte';
+  import { FileText, RotateCw, Download, ExternalLink, AlertTriangle, Paperclip } from 'lucide-svelte';
   import Button from '../ui/Button.svelte';
-  import { formatFileSize } from '../../utils/format';
+  import { formatFileSize, triggerFileDownload } from '../../utils/format';
 
   interface FileInfo {
     name: string;
@@ -45,6 +45,7 @@
   const isImage = $derived.by(() => {
     if (!activeFile) return false;
     if (activeFile.type && activeFile.type.startsWith('image/')) return true;
+    if (activeFile.url && activeFile.url.startsWith('data:image/')) return true;
     const ext = getFileExt(activeFile);
     return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'].includes(ext);
   });
@@ -52,40 +53,42 @@
   const isPdf = $derived.by(() => {
     if (!activeFile) return false;
     if (activeFile.type === 'application/pdf') return true;
+    if (activeFile.url && activeFile.url.startsWith('data:application/pdf')) return true;
     const ext = getFileExt(activeFile);
     return ext === 'pdf';
   });
 
   $effect(() => {
-    // Reset error saat file aktif berganti
-    if (activeFile) {
-      previewError = false;
-    }
+    // Reset error jika file aktif berganti
+    if (activeIndex >= 0) previewError = false;
   });
 </script>
 
-<div class="border-[3px] border-black bg-surface p-4 shadow-brutal flex flex-col gap-3 h-full select-none">
-  {#if files.length === 0}
-    <div class="p-8 text-center font-body text-sm text-gray-700 italic">
-      Tidak ada berkas untuk dipratinjau.
-    </div>
-  {:else if activeFile}
-    {#if files.length > 1}
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-2 border-b-2 border-black">
-        {#each files as f, idx (idx)}
-          <button
-            type="button"
-            onclick={() => (activeIndex = idx)}
-            class="px-3 py-1 border-2 border-black font-mono font-bold text-xs truncate max-w-[160px] transition-all duration-100 focus:outline-[3px] focus:outline-black flex items-center gap-1.5 {activeIndex === idx ? 'bg-primary shadow-brutal-sm' : 'bg-gray-100 hover:bg-yellow-50'}"
-          >
-            <FileText size={13} class="shrink-0" />
-            <span class="truncate">{f.name}</span>
-          </button>
-        {/each}
-      </div>
-    {/if}
+<div class="border-[3px] border-black bg-surface p-4 shadow-brutal flex flex-col gap-3">
+  <div class="flex items-center justify-between border-b-2 border-black pb-2">
+    <h3 class="font-display font-black text-sm uppercase text-black flex items-center gap-1.5">
+      <FileText size={16} class="shrink-0" />
+      <span>Berkas Pengumpulan ({files.length})</span>
+    </h3>
+  </div>
 
-    <div class="flex items-center justify-between gap-2 border-b-2 border-black pb-2">
+  {#if files.length > 1}
+    <div class="flex flex-wrap gap-2">
+      {#each files as f, idx}
+        <button
+          type="button"
+          onclick={() => (activeIndex = idx)}
+          class="px-2.5 py-1 border-2 border-black font-mono text-xs font-bold transition-all flex items-center gap-1 {activeIndex === idx ? 'bg-primary text-black shadow-brutal-sm' : 'bg-white text-gray-700 hover:bg-yellow-100'}"
+        >
+          <FileText size={13} class="shrink-0" />
+          <span class="max-w-[150px] truncate">{f.name}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
+
+  {#if activeFile}
+    <div class="bg-yellow-100 p-2.5 border-2 border-black flex items-center justify-between gap-2 shadow-brutal-sm">
       <div class="truncate">
         <span class="font-display font-black text-xs uppercase">{activeFile.name}</span>
         {#if activeFile.size}
@@ -99,15 +102,14 @@
             <span>Muat Ulang Tautan</span>
           </Button>
         {/if}
-        <a
-          href={activeFile.url}
-          target="_blank"
-          rel="noopener"
-          class="font-display font-black text-xs uppercase px-2.5 py-1 bg-yellow-200 text-black border-2 border-black shadow-brutal-sm hover:bg-yellow-300 flex items-center gap-1"
+        <button
+          type="button"
+          onclick={() => triggerFileDownload(activeFile.url, activeFile.name)}
+          class="font-display font-black text-xs uppercase px-2.5 py-1 bg-yellow-200 text-black border-2 border-black shadow-brutal-sm hover:bg-yellow-300 flex items-center gap-1 cursor-pointer"
         >
           <span>Unduh Berkas</span>
-          <ExternalLink size={12} class="shrink-0" />
-        </a>
+          <Download size={13} class="shrink-0" />
+        </button>
       </div>
     </div>
 
@@ -138,15 +140,14 @@
         <div class="p-8 text-center flex flex-col items-center gap-3">
           <Paperclip size={40} class="text-black" />
           <span class="font-body text-sm font-bold text-black">Tipe berkas ini tidak dapat dipratinjau langsung.</span>
-          <a
-            href={activeFile.url}
-            target="_blank"
-            rel="noopener"
-            class="font-display font-black text-xs uppercase px-4 py-2 bg-primary text-black border-2 border-black shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 flex items-center gap-1.5"
+          <button
+            type="button"
+            onclick={() => triggerFileDownload(activeFile.url, activeFile.name)}
+            class="font-display font-black text-xs uppercase px-4 py-2 bg-primary text-black border-2 border-black shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
           >
             <span>Unduh Berkas ({activeFile.name})</span>
-            <ExternalLink size={13} class="shrink-0" />
-          </a>
+            <Download size={14} class="shrink-0" />
+          </button>
         </div>
       {/if}
     </div>

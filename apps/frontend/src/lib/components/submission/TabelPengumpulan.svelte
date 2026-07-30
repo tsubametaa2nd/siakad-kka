@@ -5,7 +5,7 @@
   import Table from '../ui/Table.svelte';
   import Tabs from '../ui/Tabs.svelte';
   import { formatDateTimeWIB } from '../../utils/date';
-  import { formatFileSize } from '../../utils/format';
+  import { formatFileSize, triggerFileDownload } from '../../utils/format';
   import type { TeacherSubmissionRow, TeacherSubmissionsResponse } from '../../api/submissions';
 
   interface Props {
@@ -146,7 +146,11 @@
                 </div>
               {/if}
               {#each row.files || [] as file}
-                <a href={file.url} target="_blank" rel="noopener" class="underline font-mono text-[11px] hover:text-accent flex items-center gap-1">
+                <a
+                  href={file.url}
+                  onclick={(e) => { e.preventDefault(); triggerFileDownload(file.url, file.name); }}
+                  class="underline font-mono text-[11px] hover:text-accent flex items-center gap-1 cursor-pointer"
+                >
                   <FileText size={13} class="shrink-0" />
                   <span>{file.name} ({formatFileSize(file.size)})</span>
                   <ExternalLink size={12} class="shrink-0" />

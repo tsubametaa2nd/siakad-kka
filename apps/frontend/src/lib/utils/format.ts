@@ -1,4 +1,4 @@
-// Fitur: utilitas pemformatan teks & file
+// Fitur: utilitas pemformatan teks & file & pengunduhan berkas
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -18,4 +18,22 @@ export const truncate = (text: string | undefined | null, length: number): strin
   if (!text) return "";
   if (text.length <= length) return text;
   return text.substring(0, length) + "...";
+};
+
+export const triggerFileDownload = (url: string, filename: string) => {
+  if (!url) return;
+  const isDataUrl = url.startsWith("data:");
+  
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename || "berkas";
+  
+  if (!isDataUrl) {
+    link.target = "_blank";
+    link.rel = "noopener";
+  }
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

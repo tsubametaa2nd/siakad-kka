@@ -7,7 +7,7 @@
   import Card from '../ui/Card.svelte';
   import ConfirmDialog from '../ui/ConfirmDialog.svelte';
   import { formatFullDateTimeWIB } from '../../utils/date';
-  import { formatFileSize } from '../../utils/format';
+  import { formatFileSize, triggerFileDownload } from '../../utils/format';
 
   interface Props {
     submission: SubmissionItem;
@@ -70,9 +70,8 @@
         {#each submission.files as file}
           <a
             href={file.url}
-            target="_blank"
-            rel="noopener"
-            class="bg-white p-2 border-2 border-black flex items-center justify-between font-mono text-xs font-bold hover:bg-yellow-50 underline"
+            onclick={(e) => { e.preventDefault(); triggerFileDownload(file.url, file.name); }}
+            class="bg-white p-2 border-2 border-black flex items-center justify-between font-mono text-xs font-bold hover:bg-yellow-50 underline cursor-pointer"
           >
             <span class="truncate flex items-center gap-1.5">
               <FileText size={14} class="shrink-0" />
