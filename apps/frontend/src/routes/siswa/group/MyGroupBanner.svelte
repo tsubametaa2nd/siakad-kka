@@ -61,7 +61,7 @@
           bind:value={editedGroupName}
           placeholder="Nama Kelompok Baru"
           required={true}
-          class="px-3 py-1.5 border-2 border-black font-display font-black text-base uppercase bg-white focus:outline-none shadow-brutal-sm max-w-xs"
+          class="px-3 py-1.5 border-[3px] border-black font-display font-black text-base uppercase bg-white text-black focus:bg-yellow-50 focus:outline-none shadow-brutal-sm min-w-[240px]"
         />
         <Button variant="primary" size="sm" type="submit" disabled={savingGroupName}>
           {savingGroupName ? 'Menyimpan...' : 'Simpan'}
