@@ -163,22 +163,23 @@
   {:else if data && filteredSubmissions.length === 0}
     <Alert tone="info" title="Tidak Ada Data" message="Tidak ada pengumpulan siswa yang memenuhi kriteria filter." />
   {:else if data && currentSub}
+    {@const isGroup = data.assignment.type === 'group'}
     <div class="flex flex-col gap-4">
       <div class="border-[3px] border-black bg-surface p-4 shadow-brutal flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <Button variant="surface" size="sm" disabled={currentIndex === 0} onclick={() => { currentIndex -= 1; focusScoreInput(); }}>
-            <span class="flex items-center gap-1"><ChevronLeft size={16} /> Siswa Sebelum</span>
+            <span class="flex items-center gap-1"><ChevronLeft size={16} /> {isGroup ? 'Kelompok Sebelum' : 'Siswa Sebelum'}</span>
           </Button>
           <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <span class="font-display font-black text-sm uppercase bg-yellow-200 px-2 py-0.5 border border-black">
-              Siswa {currentIndex + 1} dari {filteredSubmissions.length}
+              {isGroup ? 'Kelompok' : 'Siswa'} {currentIndex + 1} dari {filteredSubmissions.length}
             </span>
             <span class="font-display font-black text-base uppercase text-black">
-              {currentSub.student_name} {#if currentSub.identifier}<span class="font-mono text-xs text-gray-700">({currentSub.identifier})</span>{/if}
+              {currentSub.group_name || currentSub.student_name} {#if currentSub.identifier && !isGroup}<span class="font-mono text-xs text-gray-700">({currentSub.identifier})</span>{/if}
             </span>
           </div>
           <Button variant="surface" size="sm" disabled={currentIndex === filteredSubmissions.length - 1} onclick={() => { currentIndex += 1; focusScoreInput(); }}>
-            <span class="flex items-center gap-1">Siswa Berikut <ChevronRight size={16} /></span>
+            <span class="flex items-center gap-1">{isGroup ? 'Kelompok Berikut' : 'Siswa Berikut'} <ChevronRight size={16} /></span>
           </Button>
         </div>
         <Badge tone={currentSub.status === 'Dinilai' ? 'warning' : currentSub.status === 'Sudah' ? 'info' : currentSub.status === 'Telat' ? 'danger' : 'neutral'}>
@@ -186,12 +187,25 @@
         </Badge>
       </div>
 
+      {#if currentSub.group_members && currentSub.group_members.length > 0}
+        <div class="bg-yellow-100 p-3 border-[3px] border-black shadow-brutal flex flex-wrap items-center gap-2">
+          <span class="font-display font-black text-xs uppercase text-black flex items-center gap-1 shrink-0">
+            👥 Anggota {currentSub.group_name || currentSub.student_name} ({currentSub.group_members.length}):
+          </span>
+          {#each currentSub.group_members as m}
+            <span class="font-mono text-xs font-bold bg-white px-2 py-1 border border-black shadow-brutal-sm flex items-center gap-1">
+              {#if m.is_leader}👑{/if} {m.name} {#if m.identifier}<span class="text-gray-500 text-[10px]">({m.identifier})</span>{/if}
+            </span>
+          {/each}
+        </div>
+      {/if}
+
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div class="xl:col-span-7 flex flex-col gap-4">
           {#if currentSub.content}
             <Card tone="surface" class="border-[3px] border-black p-4 bg-yellow-50 shadow-brutal">
               <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-2">
-                <span class="font-display font-black text-sm uppercase text-black">💬 Teks Jawaban / Catatan Siswa:</span>
+                <span class="font-display font-black text-sm uppercase text-black">💬 Teks Jawaban / Catatan {isGroup ? 'Kelompok' : 'Siswa'}:</span>
                 {#if currentSub.submitted_at}
                   <span class="font-mono text-xs text-gray-600 font-bold">{new Date(currentSub.submitted_at).toLocaleString('id-ID')}</span>
                 {/if}
@@ -210,14 +224,14 @@
                 Belum Ada Pengumpulan
               </span>
               <span class="font-body text-xs italic text-gray-600">
-                Siswa ini belum mengirimkan jawaban dalam bentuk berkas maupun teks.
+                {isGroup ? 'Kelompok' : 'Siswa'} ini belum mengirimkan jawaban dalam bentuk berkas maupun teks.
               </span>
             </Card>
           {/if}
 
           {#if currentSub.links && currentSub.links.length > 0}
             <Card tone="base" class="border-2 border-black p-3">
-              <span class="font-display font-black text-xs uppercase block mb-1">Tautan Ditambahkan Siswa:</span>
+              <span class="font-display font-black text-xs uppercase block mb-1">Tautan Ditambahkan {isGroup ? 'Kelompok' : 'Siswa'}:</span>
               <div class="flex flex-col gap-1">
                 {#each currentSub.links as linkItem}
                   <a href={linkItem} target="_blank" rel="noopener" class="font-mono text-xs text-blue-900 underline truncate flex items-center gap-1">
@@ -234,7 +248,7 @@
         <div class="xl:col-span-5 flex flex-col gap-4">
           <Card tone="surface" class="border-[3px] border-black shadow-brutal p-5 flex flex-col gap-4">
             <div class="flex items-center justify-between border-b-2 border-black pb-3">
-              <h3 class="font-display font-black text-lg uppercase tracking-wide">Form Penilaian</h3>
+              <h3 class="font-display font-black text-lg uppercase tracking-wide">{isGroup ? 'Penilaian Kelompok' : 'Form Penilaian'}</h3>
               <span class="font-mono text-xs font-bold bg-yellow-200 px-2 py-1 border border-black">
                 Maksimal: {maxScore}
               </span>
@@ -243,7 +257,7 @@
             <form onsubmit={handleSaveAndNext} class="flex flex-col gap-4">
               <Input
                 id="score-input-field"
-                label={`Input Nilai (0 - ${maxScore})`}
+                label={isGroup ? `Input Nilai Kelompok (0 - ${maxScore})` : `Input Nilai (0 - ${maxScore})`}
                 type="number"
                 required={true}
                 bind:value={scoreInput}

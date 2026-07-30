@@ -68,8 +68,8 @@ export const gradeStudent = async (teacherId: string, body: GradeBody) => {
   const cls = await findClassById(assignment.classId);
   let studentIds = [targetStudentId];
 
-  const isRepresentativeGroup = assignment.type === "group" && assignment.groupSubmissionMode !== "individual";
-  if (isRepresentativeGroup) {
+  const isGroupAssignment = assignment.type === "group";
+  if (isGroupAssignment) {
     const studentGroups = await findStudentGroups(targetStudentId);
     const classGroup = studentGroups.find((g: any) => g.class_id === assignment.classId);
     if (classGroup) {
@@ -135,15 +135,135 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
   const submissions = await findActiveSubmissionsByAssignment(assignmentId, 1000);
   const grades = await gradingRepo.findGradesByAssignment(String(assignment._id), 1000);
 
-  // Map studentId → grade untuk lookup cepat
   const gradeMap = new Map<string, any>(grades.map((g: any) => [g.studentId, g]));
-  // Map studentId → submission
   const submissionMap = new Map<string, any>(submissions.map((s: any) => [s.studentId, s]));
-  // Map groupId → submission (untuk tugas kelompok perwakilan)
   const groupSubMap = new Map<string, any>();
   submissions.forEach((s: any) => {
     if (s.groupId) groupSubMap.set(s.groupId, s);
   });
+
+  if (assignment.type === "group") {
+    const { findGroupsByClass } = await import("../groups/groups.repository");
+    const classGroups = await findGroupsByClass(assignment.classId);
+
+    const groupedStudentIds = new Set<string>();
+    const submissionRows = await Promise.all(
+      classGroups.map(async (g: any) => {
+        let sub: any = groupSubMap.get(g.id);
+
+        const memberDetails = (g.members || []).map((m: any) => {
+          groupedStudentIds.add(m.student_id);
+          if (!sub) {
+            const mSub = submissionMap.get(m.student_id);
+            if (mSub) sub = mSub;
+          }
+          return {
+            student_id: m.student_id,
+            name: m.name,
+            identifier: m.identifier || "",
+            is_leader: m.student_id === g.leader_id,
+          };
+        });
+
+        const repStudentId = g.leader_id || (g.members && g.members[0]?.student_id) || `group-${g.id}`;
+        const grade: any = gradeMap.get(repStudentId) || (g.members || []).map((m: any) => gradeMap.get(m.student_id)).find(Boolean);
+
+        let files: any[] = [];
+        if (sub?.files && sub.files.length > 0) {
+          const { attachSignedUrls } = await import("../submissions/submissions.files");
+          const subWithUrls = await attachSignedUrls(sub);
+          files = (subWithUrls.files || []).map((f: any) => ({
+            name: f.name,
+            size: f.size,
+            url: f.url || f.signedUrl || "",
+            type: f.mime || f.type || "",
+          }));
+        }
+
+        let status: "Belum" | "Sudah" | "Telat" | "Dinilai" = "Belum";
+        if (grade) {
+          status = "Dinilai";
+        } else if (sub) {
+          status = sub.status === "late" ? "Telat" : "Sudah";
+        }
+
+        return {
+          submission_id: sub?._id || sub?.id,
+          student_id: repStudentId,
+          student_name: g.name,
+          group_id: g.id,
+          group_name: g.name,
+          group_members: memberDetails,
+          identifier: `${memberDetails.length} Anggota`,
+          status,
+          submitted_at: sub?.submittedAt || sub?.createdAt,
+          files,
+          links: sub?.links || [],
+          content: sub?.content || sub?.text || null,
+          score: grade?.score !== undefined ? grade.score : (sub?.score !== undefined ? sub.score : null),
+          feedback: grade?.feedback || null,
+          syncedToSheet: grade?.syncedToSheet || false,
+          graded_at: grade?.gradedAt,
+        };
+      })
+    );
+
+    const unassignedStudents = classStudents.filter((st: any) => !groupedStudentIds.has(st.id));
+    for (const st of unassignedStudents) {
+      const sub = submissionMap.get(st.id);
+      const grade = gradeMap.get(st.id);
+
+      let files: any[] = [];
+      if (sub?.files && sub.files.length > 0) {
+        const { attachSignedUrls } = await import("../submissions/submissions.files");
+        const subWithUrls = await attachSignedUrls(sub);
+        files = (subWithUrls.files || []).map((f: any) => ({
+          name: f.name,
+          size: f.size,
+          url: f.url || f.signedUrl || "",
+          type: f.mime || f.type || "",
+        }));
+      }
+
+      let status: "Belum" | "Sudah" | "Telat" | "Dinilai" = "Belum";
+      if (grade) {
+        status = "Dinilai";
+      } else if (sub) {
+        status = sub.status === "late" ? "Telat" : "Sudah";
+      }
+
+      submissionRows.push({
+        submission_id: sub?._id || sub?.id,
+        student_id: st.id,
+        student_name: `${st.full_name || st.name || "Siswa"} (Belum Berkelompok)`,
+        group_id: undefined,
+        group_name: undefined,
+        group_members: [{ student_id: st.id, name: st.full_name || st.name || "Siswa", identifier: st.identifier || "", is_leader: true }],
+        identifier: st.identifier || "",
+        status,
+        submitted_at: sub?.submittedAt || sub?.createdAt,
+        files,
+        links: sub?.links || [],
+        content: sub?.content || sub?.text || null,
+        score: grade?.score !== undefined ? grade.score : (sub?.score !== undefined ? sub.score : null),
+        feedback: grade?.feedback || null,
+        syncedToSheet: grade?.syncedToSheet || false,
+        graded_at: grade?.gradedAt,
+      });
+    }
+
+    return {
+      assignment: {
+        id: String(assignment._id),
+        title: assignment.title,
+        max_score: assignment.maxScore || 100,
+        type: assignment.type || "individual",
+        class_id: assignment.classId,
+        class_name: cls?.name || "",
+      },
+      submissions: submissionRows,
+    };
+  }
 
   const submissionRows = await Promise.all(classStudents.map(async (student: any) => {
     let sub: any = submissionMap.get(student.id);
@@ -160,7 +280,6 @@ export const getAssignmentGrading = async (teacherId: string, assignmentId: stri
 
     let files: any[] = [];
     if (sub?.files && sub.files.length > 0) {
-      // Lampirkan signed URL untuk setiap file
       const { attachSignedUrls } = await import("../submissions/submissions.files");
       const subWithUrls = await attachSignedUrls(sub);
       files = (subWithUrls.files || []).map((f: any) => ({

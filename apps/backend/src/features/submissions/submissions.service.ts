@@ -146,6 +146,111 @@ export const getTeacherSubmissions = async (teacherId: string, assignmentId: str
   const submissions = await subRepo.findActiveSubmissionsByAssignment(assignmentId, 1000);
   const submissionsWithUrls = await Promise.all(submissions.map((s: any) => filesHelper.attachSignedUrls(s)));
   const subMap = new Map<string, any>(submissionsWithUrls.map((s: any) => [s.studentId, s]));
+  const groupSubMap = new Map<string, any>();
+  submissionsWithUrls.forEach((s: any) => {
+    if (s.groupId) groupSubMap.set(s.groupId, s);
+  });
+
+  if (assignment.type === "group") {
+    const { findGroupsByClass } = await import("../groups/groups.repository");
+    const classGroups = await findGroupsByClass(assignment.classId);
+
+    const groupedStudentIds = new Set<string>();
+    let submittedCount = 0;
+
+    const submissionRows = classGroups.map((g: any) => {
+      let sub: any = groupSubMap.get(g.id);
+
+      const memberDetails = (g.members || []).map((m: any) => {
+        groupedStudentIds.add(m.student_id);
+        if (!sub) {
+          const mSub = subMap.get(m.student_id);
+          if (mSub) sub = mSub;
+        }
+        return {
+          student_id: m.student_id,
+          name: m.name,
+          identifier: m.identifier || "",
+          is_leader: m.student_id === g.leader_id,
+        };
+      });
+
+      let statusLabel: "Sudah" | "Telat" | "Dinilai" | "Belum" = "Belum";
+      if (sub) {
+        submittedCount++;
+        if (sub.score !== undefined && sub.score !== null) statusLabel = "Dinilai";
+        else if (sub.status === "late") statusLabel = "Telat";
+        else statusLabel = "Sudah";
+      }
+
+      const repStudentId = g.leader_id || (g.members && g.members[0]?.student_id) || `group-${g.id}`;
+
+      return {
+        id: sub?._id || sub?.id || `unsubmitted-${g.id}`,
+        student_id: repStudentId,
+        student_name: g.name,
+        group_id: g.id,
+        group_name: g.name,
+        group_members: memberDetails,
+        identifier: `${memberDetails.length} Anggota`,
+        status: statusLabel,
+        submitted_at: sub ? (sub.createdAt || sub.submittedAt || new Date().toISOString()) : null,
+        files: sub
+          ? (sub.files || []).map((f: any) => ({
+              name: f.name,
+              size: f.size,
+              url: f.url || f.signedUrl,
+            }))
+          : [],
+        links: sub?.links || [],
+        content: sub?.content || sub?.text || null,
+        score: sub?.score,
+        feedback: sub?.feedback,
+      };
+    });
+
+    const unassignedStudents = classStudents.filter((st: any) => !groupedStudentIds.has(st.id));
+    for (const st of unassignedStudents) {
+      const s = subMap.get(st.id);
+      let statusLabel: "Sudah" | "Telat" | "Dinilai" | "Belum" = "Belum";
+      if (s) {
+        submittedCount++;
+        if (s.score !== undefined && s.score !== null) statusLabel = "Dinilai";
+        else if (s.status === "late") statusLabel = "Telat";
+        else statusLabel = "Sudah";
+      }
+
+      submissionRows.push({
+        id: s?._id || s?.id || `unsubmitted-${st.id}`,
+        student_id: st.id,
+        student_name: `${st?.name || st?.full_name || "Siswa"} (Belum Berkelompok)`,
+        group_id: undefined,
+        group_name: undefined,
+        group_members: [{ student_id: st.id, name: st?.name || st?.full_name || "Siswa", identifier: st?.identifier || "", is_leader: true }],
+        identifier: st?.identifier || "",
+        status: statusLabel,
+        submitted_at: s ? (s.createdAt || s.submittedAt || new Date().toISOString()) : null,
+        files: s
+          ? (s.files || []).map((f: any) => ({
+              name: f.name,
+              size: f.size,
+              url: f.url || f.signedUrl,
+            }))
+          : [],
+        links: s?.links || [],
+        content: s?.content || s?.text || null,
+        score: s?.score,
+        feedback: s?.feedback,
+      });
+    }
+
+    return {
+      total_students: classStudents.length,
+      total_groups: submissionRows.length,
+      submitted_count: submittedCount,
+      submissions: submissionRows,
+    };
+  }
 
   let submittedCount = 0;
 

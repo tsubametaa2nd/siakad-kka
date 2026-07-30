@@ -21,3 +21,27 @@ export const getApiUrl = (endpoint: string): string => {
   
   return `${cleanBase}${cleanEndpoint}`;
 };
+
+export const getFileUrl = (url?: string | null): string => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  const envUrl = (import.meta.env.VITE_API_URL as string) || "";
+
+  if (envUrl) {
+    const origin = envUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+    return `${origin}${cleanPath}`;
+  }
+
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return `http://localhost:3000${cleanPath}`;
+    }
+    return `${window.location.origin}${cleanPath}`;
+  }
+
+  return cleanPath;
+};

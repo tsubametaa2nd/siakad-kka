@@ -1,4 +1,5 @@
 import { api } from './client';
+import { getFileUrl } from '../config/api';
 
 export interface GradeResult {
   id?: string;
@@ -24,7 +25,9 @@ export interface SubmissionGradingRow {
   student_id: string;
   student_name: string;
   identifier: string;
+  group_id?: string;
   group_name?: string;
+  group_members?: Array<{ student_id: string; name: string; identifier?: string; is_leader?: boolean }>;
   status: 'Belum' | 'Sudah' | 'Telat' | 'Dinilai';
   submitted_at?: string;
   files?: Array<{ name: string; url: string; size?: number; type?: string }>;
@@ -76,7 +79,17 @@ export const gradeStudentApi = async (payload: {
 };
 
 export const getAssignmentGradingApi = async (assignmentId: string): Promise<AssignmentGradingResponse> => {
-  return api.get<AssignmentGradingResponse>(`/grading/assignment/${assignmentId}/grading`);
+  const res = await api.get<AssignmentGradingResponse>(`/grading/assignment/${assignmentId}/grading`);
+  if (res && res.submissions) {
+    res.submissions = res.submissions.map((sub: any) => ({
+      ...sub,
+      files: (sub.files || []).map((f: any) => ({
+        ...f,
+        url: getFileUrl(f.url || f.signedUrl || f.path),
+      })),
+    }));
+  }
+  return res;
 };
 
 export const getStudentGradesApi = async (): Promise<StudentGradeItem[]> => {

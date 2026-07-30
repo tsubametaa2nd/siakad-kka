@@ -1,4 +1,5 @@
 import { api } from './client';
+import { getFileUrl } from '../config/api';
 
 export interface SubmissionFile {
   name: string;
@@ -22,10 +23,20 @@ export interface SubmissionItem {
   submitted_by_name?: string;
 }
 
+export interface GroupMemberInfo {
+  student_id: string;
+  name: string;
+  identifier?: string;
+  is_leader?: boolean;
+}
+
 export interface TeacherSubmissionRow {
   id?: string;
   student_id: string;
   student_name: string;
+  group_id?: string;
+  group_name?: string;
+  group_members?: GroupMemberInfo[];
   identifier: string;
   status: 'Belum' | 'Sudah' | 'Telat' | 'Dinilai';
   submitted_at?: string;
@@ -38,6 +49,7 @@ export interface TeacherSubmissionRow {
 
 export interface TeacherSubmissionsResponse {
   total_students: number;
+  total_groups?: number;
   submitted_count: number;
   submissions: TeacherSubmissionRow[];
 }
@@ -51,7 +63,11 @@ const normalizeSubmissionItem = (raw: any): SubmissionItem | null => {
     version: raw.version || 1,
     status: raw.status === 'graded' ? 'Dinilai' : raw.status === 'late' ? 'Telat' : 'Sudah',
     submitted_at: raw.createdAt || raw.submitted_at || new Date().toISOString(),
-    files: raw.files || [],
+    files: (raw.files || []).map((f: any) => ({
+      name: f.name || 'Berkas',
+      size: f.size || 0,
+      url: getFileUrl(f.url || f.signedUrl || f.path),
+    })),
     links: raw.links || [],
     content: raw.content || raw.text || raw.text_content || null,
     score: raw.score,
@@ -67,7 +83,17 @@ export const getMySubmissionApi = async (assignmentId: string): Promise<Submissi
 };
 
 export const getAssignmentSubmissionsApi = async (assignmentId: string): Promise<TeacherSubmissionsResponse> => {
-  return api.get<TeacherSubmissionsResponse>(`/submissions/assignment/${assignmentId}`);
+  const res = await api.get<TeacherSubmissionsResponse>(`/submissions/assignment/${assignmentId}`);
+  if (res && res.submissions) {
+    res.submissions = res.submissions.map((sub: any) => ({
+      ...sub,
+      files: (sub.files || []).map((f: any) => ({
+        ...f,
+        url: getFileUrl(f.url || f.signedUrl || f.path),
+      })),
+    }));
+  }
+  return res;
 };
 
 export const submitAssignmentApi = async (

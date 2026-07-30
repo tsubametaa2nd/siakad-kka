@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ClipboardList, CheckCircle2, AlertTriangle, XCircle, FileText, Link, ExternalLink, PenLine } from 'lucide-svelte';
+  import { ClipboardList, CheckCircle2, AlertTriangle, XCircle, FileText, Link, ExternalLink, PenLine, Users, ChevronDown, ChevronUp, Crown, User } from 'lucide-svelte';
   import Badge from '../ui/Badge.svelte';
   import Button from '../ui/Button.svelte';
   import Table from '../ui/Table.svelte';
@@ -11,19 +11,23 @@
   interface Props {
     data: TeacherSubmissionsResponse;
     assignmentId?: string;
+    assignmentType?: 'individual' | 'group';
     ongrade?: (row: TeacherSubmissionRow) => void;
   }
 
-  let { data, assignmentId = '', ongrade }: Props = $props();
+  let { data, assignmentId = '', assignmentType = 'individual', ongrade }: Props = $props();
 
   let activeTab = $state('Sudah');
+  let expandedRows = $state<Record<string, boolean>>({});
 
-  const filterTabs = [
+  const isGroup = $derived(assignmentType === 'group' || (data.submissions && data.submissions.some((s) => !!s.group_members)));
+
+  const filterTabs = $derived([
     { id: 'Sudah', label: 'Sudah Mengumpulkan', icon: CheckCircle2 },
-    { id: 'all', label: 'Semua Siswa', icon: ClipboardList },
+    { id: 'all', label: isGroup ? 'Semua Kelompok' : 'Semua Siswa', icon: ClipboardList },
     { id: 'Telat', label: 'Terlambat', icon: AlertTriangle },
     { id: 'Belum', label: 'Belum Mengumpulkan', icon: XCircle },
-  ];
+  ]);
 
   const filteredRows = $derived(
     (data.submissions || []).filter((s) => {
@@ -33,11 +37,17 @@
     })
   );
 
+  const totalCount = $derived(data.total_groups || (data.submissions ? data.submissions.length : data.total_students));
+
   const statusTone = (status: string) => {
     if (status === 'Dinilai') return 'warning';
     if (status === 'Sudah') return 'info';
     if (status === 'Telat') return 'danger';
     return 'neutral';
+  };
+
+  const toggleExpand = (id: string) => {
+    expandedRows = { ...expandedRows, [id]: !expandedRows[id] };
   };
 
   const goToGrading = (studentId?: string) => {
@@ -52,11 +62,11 @@
 
 <div class="flex flex-col gap-4">
   <div class="bg-yellow-100 p-4 border-[3px] border-black shadow-brutal flex items-center justify-between text-black">
-    <div class="font-display font-black text-base uppercase text-black">
-      {data.submitted_count} dari {data.total_students} siswa sudah mengumpulkan
+    <div class="font-display font-black text-base uppercase">
+      {data.submitted_count} dari {totalCount} {isGroup ? 'kelompok' : 'siswa'} sudah mengumpulkan
     </div>
     <div class="flex items-center gap-2">
-      <Badge tone="info">{Math.round((data.submitted_count / (data.total_students || 1)) * 100)}% Pengumpulan</Badge>
+      <Badge tone="info">{Math.round((data.submitted_count / (totalCount || 1)) * 100)}% Pengumpulan</Badge>
       {#if assignmentId && data.submitted_count > 0}
         <Button variant="primary" size="sm" onclick={() => goToGrading()}>
           <span class="flex items-center gap-1.5"><PenLine size={14} /> Mulai Menilai</span>
@@ -69,14 +79,59 @@
 
   {#if filteredRows.length === 0}
     <div class="p-6 border-2 border-black bg-white text-center font-body text-sm italic">
-      Belum ada siswa untuk kategori/filter ini.
+      Belum ada {isGroup ? 'kelompok' : 'siswa'} untuk kategori/filter ini.
     </div>
   {:else}
-    <Table headers={["No", "Nama Siswa", "Status", "Waktu Pengumpulan", "Berkas & Tautan", "Skor", "Aksi"]}>
+    <Table headers={["No", isGroup ? "Nama Kelompok" : "Nama Siswa", "Status", "Waktu Pengumpulan", "Berkas & Tautan", "Skor", "Aksi"]}>
       {#each filteredRows as row, idx (row.student_id)}
+        {@const rowKey = row.group_id || row.student_id}
+        {@const isExpanded = !!expandedRows[rowKey]}
         <tr>
           <td class="p-3 border-r-2 border-black font-mono font-bold text-xs">{idx + 1}</td>
-          <td class="p-3 border-r-2 border-black font-bold text-xs">{row.student_name}</td>
+          <td class="p-3 border-r-2 border-black text-xs">
+            <div class="flex flex-col gap-1">
+              <span class="font-display font-black text-sm uppercase">{row.group_name || row.student_name}</span>
+              
+              {#if row.group_members && row.group_members.length > 0}
+                <button
+                  type="button"
+                  onclick={() => toggleExpand(rowKey)}
+                  class="self-start font-mono text-[11px] font-bold text-black hover:bg-yellow-200 transition-colors flex items-center gap-1 bg-yellow-100 px-2 py-0.5 border border-black shadow-brutal-sm"
+                >
+                  <Users size={12} class="shrink-0" />
+                  <span>{row.group_members.length} Anggota</span>
+                  {#if isExpanded}
+                    <ChevronUp size={12} />
+                  {:else}
+                    <ChevronDown size={12} />
+                  {/if}
+                </button>
+
+                {#if isExpanded}
+                  <div class="mt-2 p-2.5 bg-white border-2 border-black font-body text-xs flex flex-col gap-1.5 shadow-brutal-sm min-w-[220px]">
+                    <span class="font-display font-black text-[10px] uppercase text-gray-500 border-b border-black pb-1 mb-0.5">Daftar Anggota Kelompok:</span>
+                    {#each row.group_members as member}
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-gray-900 flex items-center gap-1">
+                          {#if member.is_leader}
+                            <span title="Ketua Kelompok"><Crown size={13} class="text-amber-500 shrink-0" /></span>
+                          {:else}
+                            <User size={13} class="text-gray-400 shrink-0" />
+                          {/if}
+                          <span>{member.name}</span>
+                        </span>
+                        {#if member.identifier}
+                          <span class="font-mono text-[10px] text-gray-600 font-bold">({member.identifier})</span>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              {:else if row.identifier}
+                <span class="font-mono text-xs text-gray-600 font-bold">({row.identifier})</span>
+              {/if}
+            </div>
+          </td>
           <td class="p-3 border-r-2 border-black text-xs">
             <Badge tone={statusTone(row.status)}>{row.status}</Badge>
           </td>
@@ -124,7 +179,7 @@
                 class="px-3 py-1.5 bg-primary text-black border-2 border-black font-display font-black text-xs uppercase shadow-brutal-sm hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform flex items-center gap-1.5"
               >
                 <PenLine size={13} />
-                <span>{row.score !== undefined && row.score !== null ? 'Edit Nilai' : 'Nilai'}</span>
+                <span>{row.score !== undefined && row.score !== null ? 'Edit Nilai' : isGroup ? 'Nilai Kelompok' : 'Nilai'}</span>
               </button>
             {:else}
               <span class="text-gray-400 italic text-xs">-</span>
@@ -135,4 +190,3 @@
     </Table>
   {/if}
 </div>
-

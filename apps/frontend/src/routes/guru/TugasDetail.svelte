@@ -102,7 +102,7 @@
       {#if loadingSubmissions}
         <Skeleton height="h-64" />
       {:else if submissionsData}
-        <TabelPengumpulan data={submissionsData} assignmentId={assignmentId} />
+        <TabelPengumpulan data={submissionsData} assignmentId={assignmentId} assignmentType={assignment.type} />
       {/if}
     </div>
   {/if}
