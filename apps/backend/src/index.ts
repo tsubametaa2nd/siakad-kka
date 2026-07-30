@@ -12,6 +12,7 @@ import { materialRoutes } from "./features/materials/materials.routes.js";
 import { quizRoutes } from "./features/quiz/quiz.routes.js";
 import { submissionRoutes } from "./features/submissions/submissions.routes.js";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { errorHandler } from "./shared/middleware/error.js";
 import { getApiLandingHtml } from "./shared/utils/apiLandingHtml.js";
@@ -26,6 +27,11 @@ const getMimeType = (filePath: string) => {
     case ".gif": return "image/gif";
     case ".svg": return "image/svg+xml";
     case ".pdf": return "application/pdf";
+    case ".doc": return "application/msword";
+    case ".docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case ".js": return "application/javascript";
+    case ".css": return "text/css";
+    case ".json": return "application/json";
     case ".mp3": return "audio/mpeg";
     case ".mp4": return "video/mp4";
     default: return "application/octet-stream";
@@ -59,10 +65,29 @@ export const app = new Elysia()
   })
   .get("/health", () => ok({ status: "ok" }))
   .get("/public/*", async ({ params, set }) => {
-    const relativePath = params["*"];
-    const filePath = path.join(process.cwd(), "public", relativePath);
-    const altPath = path.join(process.cwd(), "apps/backend/public", relativePath);
-    const targetPath = fs.existsSync(filePath) ? filePath : fs.existsSync(altPath) ? altPath : null;
+    const rawPath = params["*"] || "";
+    const sanitizedPath = path.normalize(rawPath).replace(/^(\.\.[\/\\])+/, "");
+    if (sanitizedPath.includes("..")) {
+      set.status = 400;
+      return "Akses ditolak";
+    }
+
+    const filePath = path.join(process.cwd(), "public", sanitizedPath);
+    const altPath = path.join(process.cwd(), "apps/backend/public", sanitizedPath);
+    const tmpPath = path.join(os.tmpdir(), "public", sanitizedPath);
+
+    const allowedDirs = [
+      path.resolve(process.cwd(), "public"),
+      path.resolve(process.cwd(), "apps/backend/public"),
+      path.resolve(os.tmpdir(), "public"),
+    ];
+
+    const candidates = [filePath, altPath, tmpPath];
+    const targetPath = candidates.find((p) => {
+      if (!fs.existsSync(p)) return false;
+      const resolved = path.resolve(p);
+      return allowedDirs.some((dir) => resolved.startsWith(dir));
+    });
 
     if (!targetPath) {
       set.status = 404;

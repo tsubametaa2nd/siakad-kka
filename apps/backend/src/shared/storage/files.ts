@@ -1,5 +1,6 @@
 // Fitur: manajemen file Supabase Storage & local static fallback
 import fs from "fs";
+import os from "os";
 import pathModule from "path";
 import { supabase } from "../../config/supabase";
 
@@ -20,13 +21,32 @@ export const uploadFile = async (
   } catch (err: any) {
     console.warn(`[Storage] Supabase upload failed (${err?.message}). Falling back to local static storage.`);
     const sanitizedPath = path.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const localDir = pathModule.join(process.cwd(), "public", "uploads");
-    if (!fs.existsSync(localDir)) {
-      fs.mkdirSync(localDir, { recursive: true });
+    
+    // Try process.cwd()/public/uploads first
+    try {
+      const localDir = pathModule.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      const fullFilePath = pathModule.join(localDir, sanitizedPath);
+      await Bun.write(fullFilePath, file);
+      return `/public/uploads/${sanitizedPath}`;
+    } catch (fsErr: any) {
+      console.warn(`[Storage] Local static storage failed (${fsErr?.message}). Falling back to OS temp directory.`);
+      // Fallback to os.tmpdir() for serverless / read-only filesystems (EROFS)
+      try {
+        const tmpDir = pathModule.join(os.tmpdir(), "public", "uploads");
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        const fullTmpPath = pathModule.join(tmpDir, sanitizedPath);
+        await Bun.write(fullTmpPath, file);
+        return `/public/uploads/${sanitizedPath}`;
+      } catch (tmpErr: any) {
+        console.error(`[Storage] All storage options failed: ${tmpErr?.message}`);
+        throw new Error(`Gagal mengunggah file. Layanan penyimpanan tidak tersedia: ${err?.message || fsErr?.message}`);
+      }
     }
-    const fullFilePath = pathModule.join(localDir, sanitizedPath);
-    await Bun.write(fullFilePath, file);
-    return `/public/uploads/${sanitizedPath}`;
   }
 };
 
@@ -55,8 +75,15 @@ export const getSignedUrl = async (
 
 export const deleteFile = async (path: string): Promise<void> => {
   if (path.startsWith("/public/")) {
-    const localPath = pathModule.join(process.cwd(), path);
-    if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+    const relativePath = path.replace(/^\/public\//, "");
+    const localPath = pathModule.join(process.cwd(), "public", relativePath);
+    const tmpPath = pathModule.join(os.tmpdir(), "public", relativePath);
+    if (fs.existsSync(localPath)) {
+      try { fs.unlinkSync(localPath); } catch {}
+    }
+    if (fs.existsSync(tmpPath)) {
+      try { fs.unlinkSync(tmpPath); } catch {}
+    }
     return;
   }
   try {

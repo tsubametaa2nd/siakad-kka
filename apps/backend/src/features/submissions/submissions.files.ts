@@ -71,10 +71,7 @@ export const attachSignedUrls = async (submission: any) => {
   if (!submission || !submission.files) return submission;
   const filesWithUrls = await Promise.all(
     submission.files.map(async (f: any) => {
-      let rawUrl = f.path && (f.path.startsWith("/public/") || f.path.startsWith("http")) ? f.path : await getSignedUrl(f.path, 3600);
-      if (rawUrl.startsWith("/public/")) {
-        rawUrl = `http://localhost:3000${rawUrl}`;
-      }
+      const rawUrl = f.path && (f.path.startsWith("/public/") || f.path.startsWith("http")) ? f.path : await getSignedUrl(f.path, 3600);
       return {
         ...f,
         url: rawUrl,
