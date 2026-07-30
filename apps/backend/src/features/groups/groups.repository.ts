@@ -75,6 +75,22 @@ export const updateGroupLeader = async (groupId: string, newLeaderId: string) =>
     .where(eq(schema.groups.id, groupId));
 };
 
+export const updateGroupName = async (groupId: string, name: string) => {
+  const [data] = await db
+    .update(schema.groups)
+    .set({ name })
+    .where(eq(schema.groups.id, groupId))
+    .returning({
+      id: schema.groups.id,
+      name: schema.groups.name,
+      class_id: schema.groups.classId,
+      leader_id: schema.groups.leaderId,
+      max_members: schema.groups.maxMembers,
+      created_at: schema.groups.createdAt,
+    });
+  return data;
+};
+
 export const deleteGroup = async (groupId: string) => {
   await db.delete(schema.groups).where(eq(schema.groups.id, groupId));
 };

@@ -30,7 +30,12 @@ export const inviteGroupSchema = t.Object({
   student_id: t.Optional(t.String()),
 });
 
+export const updateGroupSchema = t.Object({
+  name: t.String({ minLength: 1 }),
+});
+
 export type CreateGroupBody = typeof createGroupSchema.static;
 export type JoinGroupBody = typeof joinGroupSchema.static;
 export type LeaveGroupBody = typeof leaveGroupSchema.static;
 export type InviteGroupBody = typeof inviteGroupSchema.static;
+export type UpdateGroupBody = typeof updateGroupSchema.static;

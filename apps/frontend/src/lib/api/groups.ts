@@ -47,3 +47,7 @@ export const leaveGroupApi = async (groupId: string): Promise<{ success: boolean
 export const inviteStudentApi = async (groupId: string, studentId: string): Promise<{ invited: boolean }> => {
   return api.post('/groups/invite', { group_id: groupId, student_id: studentId });
 };
+
+export const updateGroupNameApi = async (groupId: string, name: string): Promise<GroupItem> => {
+  return api.patch<GroupItem>(`/groups/${groupId}`, { name });
+};

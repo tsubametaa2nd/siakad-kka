@@ -3,7 +3,7 @@ import { Elysia } from "elysia";
 import { authGuard, requireRole } from "../../shared/middleware/auth";
 import { ok } from "../../shared/utils/response";
 import * as groupsService from "./groups.service";
-import { createGroupSchema, joinGroupSchema, leaveGroupSchema, inviteGroupSchema } from "./groups.schema";
+import { createGroupSchema, joinGroupSchema, leaveGroupSchema, inviteGroupSchema, updateGroupSchema } from "./groups.schema";
 
 export const groupRoutes = new Elysia({ prefix: "/groups" })
   .use(authGuard)
@@ -16,4 +16,6 @@ export const groupRoutes = new Elysia({ prefix: "/groups" })
       .post("/invite", async ({ user, body }) => ok(await groupsService.inviteStudent(user.id, body)), { body: inviteGroupSchema })
       .post("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema })
       .delete("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)), { body: leaveGroupSchema })
+      .patch("/:groupId", async ({ user, params, body }) => ok(await groupsService.updateGroup(user.id, params.groupId, body.name)), { body: updateGroupSchema })
+      .put("/:groupId", async ({ user, params, body }) => ok(await groupsService.updateGroup(user.id, params.groupId, body.name)), { body: updateGroupSchema })
   );

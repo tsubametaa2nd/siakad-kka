@@ -22,6 +22,22 @@ class ToastStore {
     }
   }
 
+  success(message: string, durationMs = 4000) {
+    this.add(message, "success", durationMs);
+  }
+
+  error(message: string, durationMs = 4000) {
+    this.add(message, "danger", durationMs);
+  }
+
+  info(message: string, durationMs = 4000) {
+    this.add(message, "info", durationMs);
+  }
+
+  warning(message: string, durationMs = 4000) {
+    this.add(message, "warning", durationMs);
+  }
+
   remove(id: string) {
     this.toasts = this.toasts.filter((t) => t.id !== id);
   }

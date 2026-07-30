@@ -142,3 +142,19 @@ export const getClassGroups = async (classId: string) => {
 export const getStudentGroups = async (studentId: string) => {
   return await groupsRepo.findStudentGroups(studentId);
 };
+
+export const updateGroup = async (studentId: string, groupId: string, name: string) => {
+  if (!name || !name.trim()) throw BadRequest("Nama kelompok tidak boleh kosong");
+
+  const group = await groupsRepo.findGroupById(groupId);
+  if (!group) throw NotFound("Kelompok tidak ditemukan");
+
+  const studentGroups = await groupsRepo.findStudentGroups(studentId);
+  const isMember = studentGroups.some((g: any) => g.id === groupId);
+  if (!isMember) {
+    throw Forbidden("Kamu bukan anggota dari kelompok ini");
+  }
+
+  const updated = await groupsRepo.updateGroupName(groupId, name.trim());
+  return updated;
+};
