@@ -11,42 +11,66 @@ export const uploadFile = async (
   file: Buffer | Blob | Uint8Array,
   contentType?: string
 ): Promise<string> => {
-  try {
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(path, file, { contentType, upsert: true });
+  const mime = contentType || "application/octet-stream";
 
-    if (error) throw error;
-    return data.path;
-  } catch (err: any) {
-    console.warn(`[Storage] Supabase upload failed (${err?.message}). Falling back to local static storage.`);
-    const sanitizedPath = path.replace(/[^a-zA-Z0-9._-]/g, "_");
-    
-    // Try process.cwd()/public/uploads first
-    try {
-      const localDir = pathModule.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
-      const fullFilePath = pathModule.join(localDir, sanitizedPath);
-      await Bun.write(fullFilePath, file);
-      return `/public/uploads/${sanitizedPath}`;
-    } catch (fsErr: any) {
-      console.warn(`[Storage] Local static storage failed (${fsErr?.message}). Falling back to OS temp directory.`);
-      // Fallback to os.tmpdir() for serverless / read-only filesystems (EROFS)
+  // 1. Coba upload ke Supabase Storage
+  try {
+    let uploadRes = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(path, file, { contentType: mime, upsert: true });
+
+    // Jika bucket belum ada di Supabase, coba buat bucket otomatis
+    if (uploadRes.error && (uploadRes.error.message?.toLowerCase().includes("bucket") || (uploadRes.error as any).status === 404)) {
       try {
-        const tmpDir = pathModule.join(os.tmpdir(), "public", "uploads");
-        if (!fs.existsSync(tmpDir)) {
-          fs.mkdirSync(tmpDir, { recursive: true });
-        }
-        const fullTmpPath = pathModule.join(tmpDir, sanitizedPath);
-        await Bun.write(fullTmpPath, file);
-        return `/public/uploads/${sanitizedPath}`;
-      } catch (tmpErr: any) {
-        console.error(`[Storage] All storage options failed: ${tmpErr?.message}`);
-        throw new Error(`Gagal mengunggah file. Layanan penyimpanan tidak tersedia: ${err?.message || fsErr?.message}`);
-      }
+        await supabase.storage.createBucket(BUCKET_NAME, { public: true });
+        uploadRes = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(path, file, { contentType: mime, upsert: true });
+      } catch {}
     }
+
+    if (!uploadRes.error && uploadRes.data?.path) {
+      return uploadRes.data.path;
+    }
+
+    if (uploadRes.error) {
+      console.warn(`[Storage] Supabase upload failed: ${uploadRes.error.message}`);
+    }
+  } catch (err: any) {
+    console.warn(`[Storage] Supabase upload exception: ${err?.message}`);
+  }
+
+  // 2. Fallback ke disk lokal jika bisa ditulis (misal: localhost / VPS)
+  const sanitizedPath = path.replace(/[^a-zA-Z0-9._-]/g, "_");
+  try {
+    const localDir = pathModule.join(process.cwd(), "public", "uploads");
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    const fullFilePath = pathModule.join(localDir, sanitizedPath);
+    await Bun.write(fullFilePath, file);
+    return `/public/uploads/${sanitizedPath}`;
+  } catch (fsErr: any) {
+    console.warn(`[Storage] Local disk is read-only (Serverless/Vercel): ${fsErr?.message}`);
+  }
+
+  // 3. Fallback Serverless: Konversi ke Data URL (Base64) agar file tidak hilang antar-instance serverless
+  try {
+    let buffer: Buffer;
+    if (Buffer.isBuffer(file)) {
+      buffer = file;
+    } else if (file instanceof Blob) {
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else {
+      buffer = Buffer.from(file);
+    }
+
+    const base64 = buffer.toString("base64");
+    return `data:${mime};base64,${base64}`;
+  } catch (b64Err: any) {
+    console.error(`[Storage] All storage fallbacks failed: ${b64Err?.message}`);
+    throw new Error("Gagal menyimpan berkas pengumpulan. Layanan penyimpanan tidak tersedia.");
   }
 };
 
@@ -55,7 +79,12 @@ export const getSignedUrl = async (
   expiresInSeconds = 3600
 ): Promise<string> => {
   if (!path) return "";
-  if (path.startsWith("/public/") || path.startsWith("http://") || path.startsWith("https://")) {
+  if (
+    path.startsWith("/public/") ||
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("data:")
+  ) {
     return path;
   }
 
@@ -64,16 +93,20 @@ export const getSignedUrl = async (
       .from(BUCKET_NAME)
       .createSignedUrl(path, expiresInSeconds);
 
-    if (error || !data?.signedUrl) throw error || new Error("URL kosong");
-    return data.signedUrl;
+    if (!error && data?.signedUrl) return data.signedUrl;
+
+    const { data: pubData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+    if (pubData?.publicUrl) return pubData.publicUrl;
   } catch (err: any) {
-    console.warn(`[Storage] getSignedUrl failed (${err?.message}). Fallback to local URL.`);
-    const sanitizedPath = path.replace(/[^a-zA-Z0-9._-]/g, "_");
-    return `/public/uploads/${sanitizedPath}`;
+    console.warn(`[Storage] getSignedUrl failed (${err?.message}). Fallback to path.`);
   }
+
+  const sanitizedPath = path.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return `/public/uploads/${sanitizedPath}`;
 };
 
 export const deleteFile = async (path: string): Promise<void> => {
+  if (!path || path.startsWith("data:")) return;
   if (path.startsWith("/public/")) {
     const relativePath = path.replace(/^\/public\//, "");
     const localPath = pathModule.join(process.cwd(), "public", relativePath);
@@ -92,4 +125,3 @@ export const deleteFile = async (path: string): Promise<void> => {
     // Abaikan error hapus storage
   }
 };
-

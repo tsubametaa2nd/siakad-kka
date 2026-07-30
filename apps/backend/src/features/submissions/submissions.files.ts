@@ -61,8 +61,8 @@ export const uploadSubmissionFiles = async (classId: string, assignmentId: strin
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${classId}/${assignmentId}/${studentId}/${Date.now()}_${safeName}`;
     const arrayBuffer = await file.arrayBuffer();
-    await uploadFile(path, Buffer.from(arrayBuffer), file.type || "application/octet-stream");
-    fileMetas.push({ path, name: file.name, size: file.size, mime: file.type || "application/octet-stream" });
+    const storedPath = await uploadFile(path, Buffer.from(arrayBuffer), file.type || "application/octet-stream");
+    fileMetas.push({ path: storedPath, name: file.name, size: file.size, mime: file.type || "application/octet-stream" });
   }
   return fileMetas;
 };
@@ -71,7 +71,7 @@ export const attachSignedUrls = async (submission: any) => {
   if (!submission || !submission.files) return submission;
   const filesWithUrls = await Promise.all(
     submission.files.map(async (f: any) => {
-      const rawUrl = f.path && (f.path.startsWith("/public/") || f.path.startsWith("http")) ? f.path : await getSignedUrl(f.path, 3600);
+      const rawUrl = f.path && (f.path.startsWith("/public/") || f.path.startsWith("http") || f.path.startsWith("data:")) ? f.path : await getSignedUrl(f.path, 3600);
       return {
         ...f,
         url: rawUrl,
