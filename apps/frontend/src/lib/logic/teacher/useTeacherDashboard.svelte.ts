@@ -15,53 +15,6 @@ const dayCodeMap: Record<string, number> = {
   Minggu: 0,
 };
 
-const defaultScheduleFallback = [
-  {
-    day: 'Senin',
-    dayCode: 1,
-    slots: [
-      {
-        time: '10.00 - 11.30',
-        code: 'MP',
-        name: 'Manajemen Perkantoran',
-        room: 'Lab AK',
-        desc: 'Kelas X MP (Manajemen Perkantoran).',
-        tagTone: 'warning' as const,
-      },
-      {
-        time: '11.30 - 13.30',
-        code: 'LP',
-        name: 'Layanan Perbankan',
-        room: 'Lab AK',
-        desc: 'Kelas X LP (Layanan Perbankan).',
-        tagTone: 'info' as const,
-      },
-    ],
-  },
-  {
-    day: 'Kamis',
-    dayCode: 4,
-    slots: [
-      {
-        time: '08.15 - 09.45',
-        code: 'DKV',
-        name: 'Desain Komunikasi Visual',
-        room: 'Lab AK',
-        desc: 'Kelas X DKV (Desain Komunikasi Visual).',
-        tagTone: 'danger' as const,
-      },
-      {
-        time: '11.35 - 13.35',
-        code: 'ANM',
-        name: 'Animasi 2D & 3D',
-        room: 'Lab AK',
-        desc: 'Kelas X ANM (Animasi 2D & 3D).',
-        tagTone: 'success' as const,
-      },
-    ],
-  },
-];
-
 export function useTeacherDashboard() {
   const now = new Date();
   const currentDayIndex = now.getDay();
@@ -93,9 +46,10 @@ export function useTeacherDashboard() {
   );
 
   const dynamicScheduleData = $derived.by(() => {
+    // Only use schedule values configured in database per class
     const configuredClasses = classes.filter((c) => !!c.scheduleDay && !!c.scheduleTime);
     if (configuredClasses.length === 0) {
-      return defaultScheduleFallback;
+      return [];
     }
 
     const tagTones: Array<'warning' | 'info' | 'danger' | 'success' | 'neutral'> = ['warning', 'info', 'danger', 'success', 'neutral'];
@@ -113,10 +67,10 @@ export function useTeacherDashboard() {
       }
       const group = dayMap.get(day)!;
       group.slots.push({
-        time: c.scheduleTime || '08.00 - 09.30',
+        time: c.scheduleTime,
         code: c.name,
         name: `Kelas ${c.level} ${c.name}`,
-        room: c.room || 'Ruang Kelas',
+        room: c.room || 'Belum Diatur',
         desc: `Kelas ${c.level} ${c.name} (${c.academicYear || 'Aktif'}).`,
         tagTone: tagTones[idx % tagTones.length],
       });
