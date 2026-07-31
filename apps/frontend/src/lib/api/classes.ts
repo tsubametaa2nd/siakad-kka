@@ -8,6 +8,8 @@ export interface ClassItem {
   spreadsheetId?: string;
   scheduleDay?: string;
   scheduleTime?: string;
+  startTime?: string;
+  endTime?: string;
   room?: string;
   studentCount?: number;
 }
@@ -28,6 +30,8 @@ const normalizeClass = (raw: any): ClassItem => ({
   spreadsheetId: raw.spreadsheet_id || raw.spreadsheetId || '',
   scheduleDay: raw.schedule_day || raw.scheduleDay || '',
   scheduleTime: raw.schedule_time || raw.scheduleTime || '',
+  startTime: raw.start_time || raw.startTime || '',
+  endTime: raw.end_time || raw.endTime || '',
   room: raw.room || '',
   studentCount: raw.student_count || raw.studentCount,
 });
@@ -37,7 +41,7 @@ export const getTeacherClassesApi = async (): Promise<ClassItem[]> => {
   return (res || []).map(normalizeClass);
 };
 
-export const createClassApi = async (payload: { name: string; level: string; academicYear: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; room?: string }): Promise<ClassItem> => {
+export const createClassApi = async (payload: { name: string; level: string; academicYear: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; startTime?: string; endTime?: string; room?: string }): Promise<ClassItem> => {
   const body = {
     name: payload.name,
     gradeLevel: payload.level,
@@ -45,6 +49,8 @@ export const createClassApi = async (payload: { name: string; level: string; aca
     spreadsheetId: payload.spreadsheetId || undefined,
     scheduleDay: payload.scheduleDay || undefined,
     scheduleTime: payload.scheduleTime || undefined,
+    startTime: payload.startTime || undefined,
+    endTime: payload.endTime || undefined,
     room: payload.room || undefined,
   };
   const res = await api.post<any>('/classes', body);
@@ -64,6 +70,8 @@ export const updateClassApi = async (id: string, payload: Partial<ClassItem>): P
     spreadsheetId: payload.spreadsheetId,
     scheduleDay: payload.scheduleDay,
     scheduleTime: payload.scheduleTime,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
     room: payload.room,
   };
   const res = await api.put<any>(`/classes/${id}`, body);

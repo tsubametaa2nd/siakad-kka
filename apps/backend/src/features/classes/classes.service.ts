@@ -32,13 +32,23 @@ import { extractSpreadsheetId } from "../grading/grading.sheets";
 
 export const updateClass = async (teacherId: string, classId: string, body: Partial<CreateClassBody>) => {
   await assertTeacherOwnsClass(teacherId, classId);
+  const startTime = body.startTime !== undefined ? (body.startTime ? body.startTime.trim() : null) : undefined;
+  const endTime = body.endTime !== undefined ? (body.endTime ? body.endTime.trim() : null) : undefined;
+  
+  let scheduleTime = body.scheduleTime !== undefined ? (body.scheduleTime ? body.scheduleTime.trim() : null) : undefined;
+  if (startTime && endTime) {
+    scheduleTime = `${startTime} - ${endTime}`;
+  }
+
   return await classesRepo.updateClass(classId, {
     name: body.name,
     gradeLevel: body.gradeLevel,
     academicYear: body.academicYear,
     spreadsheetId: body.spreadsheetId !== undefined ? (extractSpreadsheetId(body.spreadsheetId) || null) : undefined,
     scheduleDay: body.scheduleDay !== undefined ? (body.scheduleDay ? body.scheduleDay.trim() : null) : undefined,
-    scheduleTime: body.scheduleTime !== undefined ? (body.scheduleTime ? body.scheduleTime.trim() : null) : undefined,
+    scheduleTime,
+    startTime,
+    endTime,
     room: body.room !== undefined ? (body.room ? body.room.trim() : null) : undefined,
   });
 };

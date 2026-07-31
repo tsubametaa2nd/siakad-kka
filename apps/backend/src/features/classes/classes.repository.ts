@@ -2,7 +2,7 @@
 import { db, schema } from "../../db";
 import { eq, inArray, and } from "drizzle-orm";
 
-export const createClass = async (data: { name: string; gradeLevel: string; academicYear: string; homeroomTeacherId: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; room?: string }) => {
+export const createClass = async (data: { name: string; gradeLevel: string; academicYear: string; homeroomTeacherId: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; startTime?: string; endTime?: string; room?: string }) => {
   const [res] = await db
     .insert(schema.classes)
     .values({
@@ -13,6 +13,8 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
       spreadsheetId: data.spreadsheetId || null,
       scheduleDay: data.scheduleDay || null,
       scheduleTime: data.scheduleTime || null,
+      startTime: data.startTime || null,
+      endTime: data.endTime || null,
       room: data.room || null,
     })
     .returning({
@@ -24,6 +26,8 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
       spreadsheet_id: schema.classes.spreadsheetId,
       schedule_day: schema.classes.scheduleDay,
       schedule_time: schema.classes.scheduleTime,
+      start_time: schema.classes.startTime,
+      end_time: schema.classes.endTime,
       room: schema.classes.room,
       created_at: schema.classes.createdAt,
     });
@@ -32,7 +36,7 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
 
 export const updateClass = async (
   classId: string,
-  data: { name?: string; gradeLevel?: string; academicYear?: string; spreadsheetId?: string | null; scheduleDay?: string | null; scheduleTime?: string | null; room?: string | null }
+  data: { name?: string; gradeLevel?: string; academicYear?: string; spreadsheetId?: string | null; scheduleDay?: string | null; scheduleTime?: string | null; startTime?: string | null; endTime?: string | null; room?: string | null }
 ) => {
   const patch: any = {};
   if (data.name !== undefined) patch.name = data.name;
@@ -41,6 +45,8 @@ export const updateClass = async (
   if (data.spreadsheetId !== undefined) patch.spreadsheetId = data.spreadsheetId;
   if (data.scheduleDay !== undefined) patch.scheduleDay = data.scheduleDay;
   if (data.scheduleTime !== undefined) patch.scheduleTime = data.scheduleTime;
+  if (data.startTime !== undefined) patch.startTime = data.startTime;
+  if (data.endTime !== undefined) patch.endTime = data.endTime;
   if (data.room !== undefined) patch.room = data.room;
 
   const [updated] = await db
@@ -56,6 +62,8 @@ export const updateClass = async (
       spreadsheet_id: schema.classes.spreadsheetId,
       schedule_day: schema.classes.scheduleDay,
       schedule_time: schema.classes.scheduleTime,
+      start_time: schema.classes.startTime,
+      end_time: schema.classes.endTime,
       room: schema.classes.room,
       created_at: schema.classes.createdAt,
     });
@@ -76,6 +84,8 @@ export const findClassById = async (classId: string) => {
     spreadsheet_id: data.spreadsheetId,
     schedule_day: data.scheduleDay,
     schedule_time: data.scheduleTime,
+    start_time: data.startTime,
+    end_time: data.endTime,
     room: data.room,
     created_at: data.createdAt,
   };
@@ -116,6 +126,8 @@ export const findClassesByTeacher = async (teacherId: string) => {
       spreadsheet_id: schema.classes.spreadsheetId,
       schedule_day: schema.classes.scheduleDay,
       schedule_time: schema.classes.scheduleTime,
+      start_time: schema.classes.startTime,
+      end_time: schema.classes.endTime,
       room: schema.classes.room,
       created_at: schema.classes.createdAt,
     })
@@ -133,6 +145,8 @@ export const findClassesByTeacher = async (teacherId: string) => {
     spreadsheet_id: c.spreadsheetId,
     schedule_day: c.scheduleDay,
     schedule_time: c.scheduleTime,
+    start_time: c.startTime,
+    end_time: c.endTime,
     room: c.room,
     created_at: c.createdAt,
   })), ...taRows].forEach((c) => allMap.set(c.id, c));
@@ -191,6 +205,8 @@ export const findClassesByStudent = async (studentId: string) => {
       spreadsheet_id: schema.classes.spreadsheetId,
       schedule_day: schema.classes.scheduleDay,
       schedule_time: schema.classes.scheduleTime,
+      start_time: schema.classes.startTime,
+      end_time: schema.classes.endTime,
       room: schema.classes.room,
       created_at: schema.classes.createdAt,
     })

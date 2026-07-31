@@ -46,18 +46,14 @@ export function useTeacherDashboard() {
   );
 
   const dynamicScheduleData = $derived.by(() => {
-    // Only use schedule values configured in database per class
-    const configuredClasses = classes.filter((c) => !!c.scheduleDay && !!c.scheduleTime);
-    if (configuredClasses.length === 0) {
-      return [];
-    }
+    if (!classes || classes.length === 0) return [];
 
     const tagTones: Array<'warning' | 'info' | 'danger' | 'success' | 'neutral'> = ['warning', 'info', 'danger', 'success', 'neutral'];
     const dayMap = new Map<string, { day: string; dayCode: number; slots: any[] }>();
 
-    configuredClasses.forEach((c, idx) => {
-      const day = c.scheduleDay || 'Senin';
-      const dayCode = dayCodeMap[day] ?? 1;
+    classes.forEach((c, idx) => {
+      const day = c.scheduleDay || 'Belum Diatur';
+      const dayCode = dayCodeMap[day] ?? 99;
       if (!dayMap.has(day)) {
         dayMap.set(day, {
           day,
@@ -66,13 +62,19 @@ export function useTeacherDashboard() {
         });
       }
       const group = dayMap.get(day)!;
+      const displayTime = (c.startTime && c.endTime)
+        ? `${c.startTime} - ${c.endTime}`
+        : (c.scheduleTime || 'Belum Diatur');
+
       group.slots.push({
-        time: c.scheduleTime,
+        id: c.id,
+        time: displayTime,
         code: c.name,
         name: `Kelas ${c.level} ${c.name}`,
         room: c.room || 'Belum Diatur',
         desc: `Kelas ${c.level} ${c.name} (${c.academicYear || 'Aktif'}).`,
         tagTone: tagTones[idx % tagTones.length],
+        studentCount: c.studentCount ?? 0,
       });
     });
 

@@ -44,6 +44,8 @@
   let editSpreadsheetId = $state('');
   let editScheduleDay = $state('');
   let editScheduleTime = $state('');
+  let editStartTime = $state('');
+  let editEndTime = $state('');
   let editRoom = $state('');
   let submittingSettings = $state(false);
 
@@ -93,6 +95,15 @@
       editSpreadsheetId = classData.spreadsheetId || '';
       editScheduleDay = classData.scheduleDay || '';
       editScheduleTime = classData.scheduleTime || '';
+      editStartTime = classData.startTime || '';
+      editEndTime = classData.endTime || '';
+      if ((!editStartTime || !editEndTime) && editScheduleTime && editScheduleTime.includes('-')) {
+        const parts = editScheduleTime.split('-').map((s) => s.trim().replace('.', ':'));
+        if (parts.length === 2) {
+          if (!editStartTime) editStartTime = parts[0];
+          if (!editEndTime) editEndTime = parts[1];
+        }
+      }
       editRoom = classData.room || '';
     } catch (err: any) {
       error = err.message || 'Gagal memuat detail kelas';
@@ -127,13 +138,16 @@
     e.preventDefault();
     submittingSettings = true;
     try {
+      const computedScheduleTime = (editStartTime && editEndTime) ? `${editStartTime} - ${editEndTime}` : editScheduleTime;
       await updateClassApi(classId, {
         name: editName,
         level: editLevel,
         academicYear: editAcademicYear,
         spreadsheetId: editSpreadsheetId,
         scheduleDay: editScheduleDay,
-        scheduleTime: editScheduleTime,
+        startTime: editStartTime,
+        endTime: editEndTime,
+        scheduleTime: computedScheduleTime,
         room: editRoom,
       });
       toastStore.add('Pengaturan & jadwal kelas berhasil diperbarui!', 'success');
@@ -237,9 +251,10 @@
 
             <div class="border-t-2 border-black pt-3 mt-1 flex flex-col gap-3">
               <h4 class="font-display font-black text-sm uppercase text-black">Jadwal & Ruangan Mengajar Kelas</h4>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Select label="Hari Mengajar" options={dayOptions} bind:value={editScheduleDay} />
-                <Input label="Jam / Waktu Sesi" bind:value={editScheduleTime} placeholder="Contoh: 08.15 - 09.45" hint="Jam sesi pelajaran" />
+                <Input label="Jam Mulai" type="time" bind:value={editStartTime} hint="Format HH:MM (contoh: 08:15)" />
+                <Input label="Jam Selesai" type="time" bind:value={editEndTime} hint="Format HH:MM (contoh: 09:45)" />
                 <Input label="Ruangan / Laboratorium" bind:value={editRoom} placeholder="Contoh: Lab AK" hint="Lokasi kelas / lab" />
               </div>
             </div>

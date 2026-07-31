@@ -8,6 +8,8 @@ export const createClassSchema = t.Object({
   spreadsheetId: t.Optional(t.String()),
   scheduleDay: t.Optional(t.String()),
   scheduleTime: t.Optional(t.String()),
+  startTime: t.Optional(t.String()),
+  endTime: t.Optional(t.String()),
   room: t.Optional(t.String()),
 });
 

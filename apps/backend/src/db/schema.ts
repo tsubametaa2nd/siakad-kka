@@ -26,6 +26,8 @@ export const classes = pgTable("classes", {
   spreadsheetId: text("spreadsheet_id"),
   scheduleDay: text("schedule_day"),
   scheduleTime: text("schedule_time"),
+  startTime: text("start_time"),
+  endTime: text("end_time"),
   room: text("room"),
   createdAt: timestamp("created_at").defaultNow(),
 });

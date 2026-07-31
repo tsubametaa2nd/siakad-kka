@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Calendar, Clock, MapPin } from 'lucide-svelte';
+  import { Calendar, Clock, MapPin, ArrowRight } from 'lucide-svelte';
   import Badge from '../../ui/Badge.svelte';
 
   interface SlotItem {
+    id?: string;
     time: string;
     code: string;
     name: string;
@@ -57,11 +58,11 @@
       <div class="flex items-center gap-2">
         <Calendar size={22} />
         <h2 class="font-display font-black text-xl uppercase tracking-wide">
-          Jadwal Mengajar Guru
+          Jadwal & Kelas Mengajar Guru
         </h2>
       </div>
       <p class="font-body text-xs font-medium text-gray-800 mt-1">
-        Jadwal tatap muka & praktikum mingguan di laboratorium & kelas teori
+        Jadwal tatap muka, jam sesi (jam mulai - selesai) & lokasi kelas yang Anda ampu
       </p>
     </div>
 
@@ -76,7 +77,7 @@
             : 'bg-transparent hover:bg-gray-100'}"
           onclick={() => handleFilter(dayOpt)}
         >
-          {dayOpt === 'semua' ? 'Semua Hari' : dayOpt}
+          {dayOpt === 'semua' ? 'Semua Hari' : dayOpt === 'Belum Diatur' ? 'Belum Diatur' : `Hari ${dayOpt}`}
         </button>
       {/each}
     </div>
@@ -85,7 +86,7 @@
   <!-- Grid Jadwal -->
   {#if filteredSchedule.length === 0}
     <div class="p-6 bg-white border-2 border-black text-center font-body text-sm italic">
-      Belum ada jadwal mengajar yang diatur untuk filter ini. Silakan atur jadwal di menu Pengaturan Kelas.
+      Belum ada kelas atau jadwal mengajar yang diatur untuk filter ini.
     </div>
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -99,13 +100,13 @@
           >
             <div class="flex items-center gap-2">
               <span class="font-display font-black text-lg uppercase"
-                >Hari {daySchedule.day}</span
+                >{daySchedule.day === 'Belum Diatur' ? 'Jadwal Belum Diatur' : `Hari ${daySchedule.day}`}</span
               >
               {#if isToday}
                 <Badge tone="danger">HARI INI</Badge>
               {/if}
             </div>
-            <Badge tone="neutral">{daySchedule.slots.length} Sesi Kelas</Badge>
+            <Badge tone="neutral">{daySchedule.slots.length} Kelas</Badge>
           </div>
 
           <div class="flex flex-col gap-3">
@@ -133,10 +134,21 @@
                 </p>
 
                 <div
-                  class="flex items-center gap-1.5 font-mono text-xs font-bold text-gray-800 pt-1 border-t border-gray-300"
+                  class="flex items-center justify-between font-mono text-xs font-bold text-gray-800 pt-2 border-t border-gray-300 gap-2"
                 >
-                  <MapPin size={14} class="text-accent shrink-0" />
-                  <span>{slot.room}</span>
+                  <div class="flex items-center gap-1.5">
+                    <MapPin size={14} class="text-accent shrink-0" />
+                    <span>{slot.room}</span>
+                  </div>
+                  {#if slot.id}
+                    <a
+                      href={`#/guru/kelas/${slot.id}`}
+                      class="inline-flex items-center gap-1 text-[11px] uppercase bg-white px-2 py-0.5 border border-black hover:bg-yellow-100 transition-colors"
+                    >
+                      <span>Buka Kelas</span>
+                      <ArrowRight size={12} />
+                    </a>
+                  {/if}
                 </div>
               </div>
             {/each}
