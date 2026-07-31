@@ -27,12 +27,12 @@
   };
 </script>
 
-<div class="flex items-center gap-2 border-b-[3px] border-black pb-2 overflow-x-auto max-w-full text-black {className}">
+<div class="flex items-center gap-2 border-b-[3px] border-black pb-2 overflow-x-auto max-w-full text-black scrollbar-none {className}">
   {#each tabs as tab}
     <button
       type="button"
       onclick={() => selectTab(tab.id)}
-      class="font-display font-black text-sm uppercase px-4 py-2 border-2 border-black rounded-none transition-all duration-100 cursor-pointer flex items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-black focus-visible:outline-offset-2 {active === tab.id ? 'bg-primary shadow-brutal translate-y-[-2px]' : 'bg-base hover:bg-surface hover:shadow-brutal-sm'}"
+      class="font-display font-black text-xs sm:text-sm uppercase px-3 sm:px-4 py-2 border-2 border-black rounded-none transition-all duration-100 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap focus-visible:outline-[3px] focus-visible:outline-black focus-visible:outline-offset-2 {active === tab.id ? 'bg-primary shadow-brutal translate-y-[-2px]' : 'bg-base hover:bg-surface hover:shadow-brutal-sm'}"
     >
       {#if tab.icon}
         {#if typeof tab.icon === 'string'}
@@ -42,7 +42,7 @@
           <Icon size={16} class="shrink-0" />
         {/if}
       {/if}
-      {tab.label}
+      <span>{tab.label}</span>
     </button>
   {/each}
 </div>

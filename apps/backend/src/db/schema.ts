@@ -24,6 +24,9 @@ export const classes = pgTable("classes", {
   academicYear: text("academic_year").notNull(),
   homeroomTeacherId: uuid("homeroom_teacher_id").notNull().references(() => profiles.id),
   spreadsheetId: text("spreadsheet_id"),
+  scheduleDay: text("schedule_day"),
+  scheduleTime: text("schedule_time"),
+  room: text("room"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

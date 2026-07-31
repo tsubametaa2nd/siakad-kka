@@ -61,11 +61,11 @@
 </script>
 
 <div class="flex flex-col gap-4">
-  <div class="bg-yellow-100 p-4 border-[3px] border-black shadow-brutal flex items-center justify-between text-black">
-    <div class="font-display font-black text-base uppercase">
+  <div class="bg-yellow-100 p-3.5 sm:p-4 border-[3px] border-black shadow-brutal flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-black">
+    <div class="font-display font-black text-sm sm:text-base uppercase text-black">
       {data.submitted_count} dari {totalCount} {isGroup ? 'kelompok' : 'siswa'} sudah mengumpulkan
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start flex-wrap">
       <Badge tone="info">{Math.round((data.submitted_count / (totalCount || 1)) * 100)}% Pengumpulan</Badge>
       {#if assignmentId && data.submitted_count > 0}
         <Button variant="primary" size="sm" onclick={() => goToGrading()}>
@@ -78,7 +78,7 @@
   <Tabs tabs={filterTabs} bind:active={activeTab} />
 
   {#if filteredRows.length === 0}
-    <div class="p-6 border-2 border-black bg-white text-center font-body text-sm italic">
+    <div class="p-6 border-2 border-black bg-white text-center font-body text-sm text-black italic">
       Belum ada {isGroup ? 'kelompok' : 'siswa'} untuk kategori/filter ini.
     </div>
   {:else}
@@ -90,7 +90,7 @@
           <td class="p-3 border-r-2 border-black font-mono font-bold text-xs">{idx + 1}</td>
           <td class="p-3 border-r-2 border-black text-xs">
             <div class="flex flex-col gap-1">
-              <span class="font-display font-black text-sm uppercase">{row.group_name || row.student_name}</span>
+              <span class="font-display font-black text-sm uppercase text-black">{row.group_name || row.student_name}</span>
               
               {#if row.group_members && row.group_members.length > 0}
                 <button

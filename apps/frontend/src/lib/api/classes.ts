@@ -6,6 +6,9 @@ export interface ClassItem {
   level: string;
   academicYear: string;
   spreadsheetId?: string;
+  scheduleDay?: string;
+  scheduleTime?: string;
+  room?: string;
   studentCount?: number;
 }
 
@@ -22,7 +25,10 @@ const normalizeClass = (raw: any): ClassItem => ({
   name: raw.name,
   level: raw.grade_level || raw.gradeLevel || raw.level || '',
   academicYear: raw.academic_year || raw.academicYear || '',
-  spreadsheetId: raw.spreadsheet_id || raw.spreadsheetId,
+  spreadsheetId: raw.spreadsheet_id || raw.spreadsheetId || '',
+  scheduleDay: raw.schedule_day || raw.scheduleDay || '',
+  scheduleTime: raw.schedule_time || raw.scheduleTime || '',
+  room: raw.room || '',
   studentCount: raw.student_count || raw.studentCount,
 });
 
@@ -31,12 +37,15 @@ export const getTeacherClassesApi = async (): Promise<ClassItem[]> => {
   return (res || []).map(normalizeClass);
 };
 
-export const createClassApi = async (payload: { name: string; level: string; academicYear: string; spreadsheetId?: string }): Promise<ClassItem> => {
+export const createClassApi = async (payload: { name: string; level: string; academicYear: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; room?: string }): Promise<ClassItem> => {
   const body = {
     name: payload.name,
     gradeLevel: payload.level,
     academicYear: payload.academicYear,
     spreadsheetId: payload.spreadsheetId || undefined,
+    scheduleDay: payload.scheduleDay || undefined,
+    scheduleTime: payload.scheduleTime || undefined,
+    room: payload.room || undefined,
   };
   const res = await api.post<any>('/classes', body);
   return normalizeClass(res);
@@ -53,6 +62,9 @@ export const updateClassApi = async (id: string, payload: Partial<ClassItem>): P
     gradeLevel: payload.level,
     academicYear: payload.academicYear,
     spreadsheetId: payload.spreadsheetId,
+    scheduleDay: payload.scheduleDay,
+    scheduleTime: payload.scheduleTime,
+    room: payload.room,
   };
   const res = await api.put<any>(`/classes/${id}`, body);
   return normalizeClass(res);

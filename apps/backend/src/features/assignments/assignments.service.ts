@@ -29,20 +29,29 @@ export const createAssignment = async (teacherId: string, body: CreateAssignment
   });
 };
 
-export const updateAssignment = async (teacherId: string, assignmentId: string, body: UpdateAssignmentBody) => {
+export const updateAssignment = async (teacherId: string, assignmentId: string, body: any) => {
   const assignment = await assignmentsRepo.findAssignmentById(assignmentId);
   if (!assignment) throw NotFound("Tugas tidak ditemukan");
   if (assignment.teacherId !== teacherId) throw Forbidden("Anda tidak memiliki hak akses untuk mengubah tugas ini");
 
-  const updates: any = { ...body };
-  if (body.deadline) {
-    updates.deadline = validateFutureDeadline(body.deadline);
+  const updates: any = {};
+  if (body.title !== undefined) updates.title = body.title;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.type !== undefined) updates.type = body.type;
+
+  const gMode = body.groupSubmissionMode || body.group_submission_mode;
+  if (gMode !== undefined) {
+    updates.groupSubmissionMode = gMode;
   }
-  if (body.maxScore !== undefined) {
-    updates.maxScore = Number(body.maxScore);
+
+  const deadlineStr = body.deadline || body.due_date;
+  if (deadlineStr) {
+    updates.deadline = validateFutureDeadline(deadlineStr);
   }
-  if (body.type === "group" && body.groupSubmissionMode) {
-    updates.groupSubmissionMode = body.groupSubmissionMode;
+
+  const maxScore = body.maxScore !== undefined ? body.maxScore : body.max_score;
+  if (maxScore !== undefined) {
+    updates.maxScore = Number(maxScore);
   }
 
   return await assignmentsRepo.updateAssignment(assignmentId, updates);

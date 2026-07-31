@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Pin } from 'lucide-svelte';
-  import { createAssignmentApi, type AssignmentItem } from '../../api/assignments';
+  import { createAssignmentApi, updateAssignmentApi, type AssignmentItem } from '../../api/assignments';
   import { getTeacherClassesApi, type ClassItem } from '../../api/classes';
   import { toastStore } from '../../stores/toast.svelte';
   import Button from '../ui/Button.svelte';
@@ -8,14 +8,15 @@
   import Modal from '../ui/Modal.svelte';
   import Select from '../ui/Select.svelte';
   import Textarea from '../ui/Textarea.svelte';
-  import { localToUtcIso } from '../../utils/date';
+  import { localToUtcIso, utcIsoToLocalDatetime } from '../../utils/date';
 
   interface Props {
     open?: boolean;
-    onSuccess?: (newAssignment: AssignmentItem) => void;
+    assignmentToEdit?: AssignmentItem | null;
+    onSuccess?: (assignment: AssignmentItem) => void;
   }
 
-  let { open = $bindable(false), onSuccess }: Props = $props();
+  let { open = $bindable(false), assignmentToEdit = null, onSuccess }: Props = $props();
 
   let title = $state('');
   let description = $state('');
@@ -28,6 +29,8 @@
   let classes = $state<ClassItem[]>([]);
   let loadingClasses = $state(false);
   let submitting = $state(false);
+
+  const isEditMode = $derived(!!assignmentToEdit);
 
   const typeOptions = [
     { value: 'individual', label: 'Individu' },
@@ -46,6 +49,22 @@
   $effect(() => {
     if (open) {
       loadClasses();
+      if (assignmentToEdit) {
+        title = assignmentToEdit.title;
+        description = assignmentToEdit.description;
+        classId = assignmentToEdit.class_id;
+        type = assignmentToEdit.type || 'individual';
+        groupSubmissionMode = assignmentToEdit.group_submission_mode || 'representative';
+        dueDateLocal = utcIsoToLocalDatetime(assignmentToEdit.due_date);
+        maxScore = assignmentToEdit.max_score || 100;
+      } else {
+        title = '';
+        description = '';
+        dueDateLocal = '';
+        maxScore = 100;
+        groupSubmissionMode = 'representative';
+        type = 'individual';
+      }
     }
   });
 
@@ -68,7 +87,7 @@
     if (!title || !description || !classId || !dueDateLocal || submitting) return;
 
     const selectedTime = new Date(dueDateLocal).getTime();
-    if (selectedTime <= Date.now()) {
+    if (selectedTime <= Date.now() && !isEditMode) {
       toastStore.add('Tenggat waktu harus di masa mendatang', 'danger');
       return;
     }
@@ -76,40 +95,49 @@
     submitting = true;
     try {
       const utcDueDate = localToUtcIso(dueDateLocal);
-      const created = await createAssignmentApi({
-        class_id: classId,
-        title,
-        description,
-        type,
-        group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
-        due_date: utcDueDate,
-        max_score: Number(maxScore) || 100,
-      });
+      let result: AssignmentItem;
 
-      toastStore.add(`Tugas "${title}" berhasil dibuat`, 'success');
-      title = '';
-      description = '';
-      dueDateLocal = '';
-      maxScore = 100;
-      groupSubmissionMode = 'representative';
+      if (isEditMode && assignmentToEdit) {
+        result = await updateAssignmentApi(assignmentToEdit.id, {
+          title,
+          description,
+          type,
+          group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
+          due_date: utcDueDate,
+          max_score: Number(maxScore) || 100,
+        });
+        toastStore.add(`Tugas "${title}" berhasil diperbarui`, 'success');
+      } else {
+        result = await createAssignmentApi({
+          class_id: classId,
+          title,
+          description,
+          type,
+          group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
+          due_date: utcDueDate,
+          max_score: Number(maxScore) || 100,
+        });
+        toastStore.add(`Tugas "${title}" berhasil dibuat`, 'success');
+      }
+
       open = false;
-      if (onSuccess) onSuccess(created);
+      if (onSuccess) onSuccess(result);
     } catch (err: any) {
-      toastStore.add(err.message || 'Gagal membuat tugas baru', 'danger');
+      toastStore.add(err.message || (isEditMode ? 'Gagal mengedit tugas' : 'Gagal membuat tugas baru'), 'danger');
     } finally {
       submitting = false;
     }
   };
 </script>
 
-<Modal bind:open title="Buat Tugas Baru" class="max-w-2xl">
+<Modal bind:open title={isEditMode ? "Edit Tugas Guru" : "Buat Tugas Baru"} class="max-w-2xl">
   <form onsubmit={handleSubmit} class="flex flex-col gap-4">
     <Input label="Judul Tugas" required={true} bind:value={title} placeholder="Contoh: Modul 1 Web Design" />
 
     <Textarea label="Deskripsi & Petunjuk Tugas" required={true} bind:value={description} rows={3} placeholder="Tuliskan petunjuk pengerjaan tugas..." />
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Select label="Pilih Kelas" options={classOptions} bind:value={classId} disabled={loadingClasses} />
+      <Select label="Pilih Kelas" options={classOptions} bind:value={classId} disabled={loadingClasses || isEditMode} />
       <Select label="Tipe Tugas" options={typeOptions} bind:value={type} />
     </div>
 
@@ -152,7 +180,7 @@
     <div class="flex items-center justify-end gap-3 pt-4 border-t-2 border-black bg-base mt-2 shrink-0">
       <Button type="button" variant="surface" onclick={() => (open = false)}>Batal</Button>
       <Button type="submit" variant="primary" loading={submitting} disabled={!title || !description || !classId || !dueDateLocal}>
-        Simpan Tugas
+        {isEditMode ? 'Simpan Perubahan Tugas' : 'Simpan Tugas'}
       </Button>
     </div>
   </form>

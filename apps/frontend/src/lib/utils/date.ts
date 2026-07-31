@@ -80,6 +80,19 @@ export const localToUtcIso = (datetimeLocalStr: string): string => {
   return new Date(datetimeLocalStr).toISOString();
 };
 
+export const utcIsoToLocalDatetime = (utcIsoString: string | undefined | null): string => {
+  if (!utcIsoString) return '';
+  const date = new Date(utcIsoString);
+  if (isNaN(date.getTime())) return '';
+  const pad = (num: number) => String(num).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 /** Mengubah detik ke format "Xm Yd" (contoh: "2m 35d") */
 export const formatTimeTaken = (totalSeconds: number | null | undefined): string => {
   if (totalSeconds == null || totalSeconds < 0) return '-';

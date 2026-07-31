@@ -2,7 +2,7 @@
 import { db, schema } from "../../db";
 import { eq, inArray, and } from "drizzle-orm";
 
-export const createClass = async (data: { name: string; gradeLevel: string; academicYear: string; homeroomTeacherId: string; spreadsheetId?: string }) => {
+export const createClass = async (data: { name: string; gradeLevel: string; academicYear: string; homeroomTeacherId: string; spreadsheetId?: string; scheduleDay?: string; scheduleTime?: string; room?: string }) => {
   const [res] = await db
     .insert(schema.classes)
     .values({
@@ -11,6 +11,9 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
       academicYear: data.academicYear,
       homeroomTeacherId: data.homeroomTeacherId,
       spreadsheetId: data.spreadsheetId || null,
+      scheduleDay: data.scheduleDay || null,
+      scheduleTime: data.scheduleTime || null,
+      room: data.room || null,
     })
     .returning({
       id: schema.classes.id,
@@ -19,6 +22,9 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
       academic_year: schema.classes.academicYear,
       homeroom_teacher_id: schema.classes.homeroomTeacherId,
       spreadsheet_id: schema.classes.spreadsheetId,
+      schedule_day: schema.classes.scheduleDay,
+      schedule_time: schema.classes.scheduleTime,
+      room: schema.classes.room,
       created_at: schema.classes.createdAt,
     });
   return res;
@@ -26,13 +32,16 @@ export const createClass = async (data: { name: string; gradeLevel: string; acad
 
 export const updateClass = async (
   classId: string,
-  data: { name?: string; gradeLevel?: string; academicYear?: string; spreadsheetId?: string | null }
+  data: { name?: string; gradeLevel?: string; academicYear?: string; spreadsheetId?: string | null; scheduleDay?: string | null; scheduleTime?: string | null; room?: string | null }
 ) => {
   const patch: any = {};
   if (data.name !== undefined) patch.name = data.name;
   if (data.gradeLevel !== undefined) patch.gradeLevel = data.gradeLevel;
   if (data.academicYear !== undefined) patch.academicYear = data.academicYear;
   if (data.spreadsheetId !== undefined) patch.spreadsheetId = data.spreadsheetId;
+  if (data.scheduleDay !== undefined) patch.scheduleDay = data.scheduleDay;
+  if (data.scheduleTime !== undefined) patch.scheduleTime = data.scheduleTime;
+  if (data.room !== undefined) patch.room = data.room;
 
   const [updated] = await db
     .update(schema.classes)
@@ -45,6 +54,9 @@ export const updateClass = async (
       academic_year: schema.classes.academicYear,
       homeroom_teacher_id: schema.classes.homeroomTeacherId,
       spreadsheet_id: schema.classes.spreadsheetId,
+      schedule_day: schema.classes.scheduleDay,
+      schedule_time: schema.classes.scheduleTime,
+      room: schema.classes.room,
       created_at: schema.classes.createdAt,
     });
 
@@ -62,6 +74,9 @@ export const findClassById = async (classId: string) => {
     academic_year: data.academicYear,
     homeroom_teacher_id: data.homeroomTeacherId,
     spreadsheet_id: data.spreadsheetId,
+    schedule_day: data.scheduleDay,
+    schedule_time: data.scheduleTime,
+    room: data.room,
     created_at: data.createdAt,
   };
 };
@@ -99,6 +114,9 @@ export const findClassesByTeacher = async (teacherId: string) => {
       academic_year: schema.classes.academicYear,
       homeroom_teacher_id: schema.classes.homeroomTeacherId,
       spreadsheet_id: schema.classes.spreadsheetId,
+      schedule_day: schema.classes.scheduleDay,
+      schedule_time: schema.classes.scheduleTime,
+      room: schema.classes.room,
       created_at: schema.classes.createdAt,
     })
     .from(schema.teachingAssignments)
@@ -113,6 +131,9 @@ export const findClassesByTeacher = async (teacherId: string) => {
     academic_year: c.academicYear,
     homeroom_teacher_id: c.homeroomTeacherId,
     spreadsheet_id: c.spreadsheetId,
+    schedule_day: c.scheduleDay,
+    schedule_time: c.scheduleTime,
+    room: c.room,
     created_at: c.createdAt,
   })), ...taRows].forEach((c) => allMap.set(c.id, c));
 
@@ -168,6 +189,9 @@ export const findClassesByStudent = async (studentId: string) => {
       academic_year: schema.classes.academicYear,
       homeroom_teacher_id: schema.classes.homeroomTeacherId,
       spreadsheet_id: schema.classes.spreadsheetId,
+      schedule_day: schema.classes.scheduleDay,
+      schedule_time: schema.classes.scheduleTime,
+      room: schema.classes.room,
       created_at: schema.classes.createdAt,
     })
     .from(schema.enrollments)
@@ -175,4 +199,48 @@ export const findClassesByStudent = async (studentId: string) => {
     .where(eq(schema.enrollments.studentId, studentId));
 
   return rows;
+};
+
+export const addTeachingAssignment = async (classId: string, teacherId: string) => {
+  const [assign] = await db
+    .insert(schema.teachingAssignments)
+    .values({ classId, teacherId })
+    .returning();
+  return assign;
+};
+
+export const removeTeachingAssignment = async (classId: string, teacherId: string) => {
+  await db
+    .delete(schema.teachingAssignments)
+    .where(and(eq(schema.teachingAssignments.classId, classId), eq(schema.teachingAssignments.teacherId, teacherId)));
+};
+
+export const findClassTeachers = async (classId: string) => {
+  const cls = await findClassById(classId);
+  if (!cls) return [];
+
+  const homeroom = await findProfilesByIds([cls.homeroom_teacher_id]);
+  const taRows = await db
+    .select({
+      id: schema.profiles.id,
+      name: schema.profiles.fullName,
+      full_name: schema.profiles.fullName,
+      identifier: schema.profiles.identifier,
+      role: schema.profiles.role,
+    })
+    .from(schema.teachingAssignments)
+    .innerJoin(schema.profiles, eq(schema.teachingAssignments.teacherId, schema.profiles.id))
+    .where(eq(schema.teachingAssignments.classId, classId));
+
+  const map = new Map<string, any>();
+  if (homeroom[0]) {
+    map.set(homeroom[0].id, { ...homeroom[0], is_homeroom: true });
+  }
+  taRows.forEach((t) => {
+    if (!map.has(t.id)) {
+      map.set(t.id, { ...t, is_homeroom: false });
+    }
+  });
+
+  return Array.from(map.values());
 };

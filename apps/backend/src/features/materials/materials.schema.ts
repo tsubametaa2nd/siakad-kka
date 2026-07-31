@@ -3,7 +3,7 @@ import { t } from "elysia";
 
 export const htmlBlockSchema = t.Object({
   type: t.Literal("html"),
-  content: t.String({ minLength: 1 }),
+  content: t.String({ minLength: 1, maxLength: 500000 }),
 });
 
 export const videoBlockSchema = t.Object({
@@ -21,7 +21,7 @@ export const checkpointBlockSchema = t.Object({
 
 export const fullhtmlBlockSchema = t.Object({
   type: t.Literal("fullhtml"),
-  content: t.String({ minLength: 1 }),
+  content: t.String({ minLength: 1, maxLength: 500000 }),
   caption: t.Optional(t.String()),
 });
 

@@ -8,11 +8,12 @@
   interface Props {
     item: AssignmentItem;
     isTeacher?: boolean;
+    onedit?: (item: AssignmentItem) => void;
     ondelete?: (id: string) => void;
     class?: string;
   }
 
-  let { item, isTeacher = false, ondelete, class: className = '' }: Props = $props();
+  let { item, isTeacher = false, onedit, ondelete, class: className = '' }: Props = $props();
 
   let remainingText = $state('');
 
@@ -77,14 +78,27 @@
 
   <div class="border-t-2 border-black pt-3 flex items-center justify-between gap-2">
     <span class="font-mono text-xs font-bold text-gray-700">Maks Score: {item.max_score}</span>
-    {#if isTeacher && ondelete}
-      <Button
-        variant="accent"
-        size="sm"
-        onclick={(e) => { e.preventDefault(); e.stopPropagation(); ondelete(item.id); }}
-      >
-        Hapus
-      </Button>
+    {#if isTeacher}
+      <div class="flex items-center gap-1.5">
+        {#if onedit}
+          <Button
+            variant="surface"
+            size="sm"
+            onclick={(e) => { e.preventDefault(); e.stopPropagation(); onedit(item); }}
+          >
+            Edit
+          </Button>
+        {/if}
+        {#if ondelete}
+          <Button
+            variant="accent"
+            size="sm"
+            onclick={(e) => { e.preventDefault(); e.stopPropagation(); ondelete(item.id); }}
+          >
+            Hapus
+          </Button>
+        {/if}
+      </div>
     {:else}
       <span class="font-display font-black text-xs uppercase underline flex items-center gap-1">
         Lihat Detail <ArrowRight size={14} />

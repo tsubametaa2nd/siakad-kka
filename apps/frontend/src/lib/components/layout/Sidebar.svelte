@@ -13,6 +13,14 @@
 
   const menus = $derived(getMenusForRole(authStore.user?.role));
 
+  const roleLabel = $derived(
+    authStore.user?.role === 'teacher'
+      ? 'Guru'
+      : authStore.user?.role === 'student'
+        ? 'Siswa'
+        : ''
+  );
+
   const isMenuParamActive = (href: string) => {
     const path = router.location || '';
     if (href === '/guru' || href === '/siswa') {
@@ -55,12 +63,17 @@
 
   <aside class="fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-surface border-r-[3px] border-black p-4 flex flex-col gap-4 md:hidden shadow-brutal-xl select-none">
     <div class="flex items-center justify-between border-b-2 border-black pb-3">
-      <span class="font-display font-black text-lg uppercase">Navigasi</span>
+      <div class="flex flex-col min-w-0 pr-2">
+        <span class="font-display font-black text-sm uppercase text-black truncate">{authStore.user?.name || 'Navigasi'}</span>
+        {#if roleLabel}
+          <span class="font-mono text-[10px] font-bold text-gray-700 uppercase tracking-wider">{roleLabel}</span>
+        {/if}
+      </div>
       <button
         type="button"
         onclick={onCloseMobile}
         aria-label="Tutup menu"
-        class="font-black text-xl p-1 border-2 border-black bg-accent text-black shadow-brutal-sm hover:shadow-brutal focus-visible:outline-[3px] focus-visible:outline-black"
+        class="font-black text-xl p-1 border-2 border-black bg-accent text-black shadow-brutal-sm hover:shadow-brutal focus-visible:outline-[3px] focus-visible:outline-black shrink-0"
       >
         <X size={20} />
       </button>

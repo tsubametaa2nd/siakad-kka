@@ -5,7 +5,17 @@ import { getTeacherMaterialsApi, type MaterialItem } from '../../api/materials';
 import { getTeacherAssignmentsApi, type AssignmentItem } from '../../api/assignments';
 import { getTeacherQuizzesApi, type QuizItem } from '../../api/quiz';
 
-export const teacherScheduleData = [
+const dayCodeMap: Record<string, number> = {
+  Senin: 1,
+  Selasa: 2,
+  Rabu: 3,
+  Kamis: 4,
+  Jumat: 5,
+  Sabtu: 6,
+  Minggu: 0,
+};
+
+const defaultScheduleFallback = [
   {
     day: 'Senin',
     dayCode: 1,
@@ -56,7 +66,7 @@ export function useTeacherDashboard() {
   const now = new Date();
   const currentDayIndex = now.getDay();
 
-  let selectedDayFilter = $state<'semua' | 'Senin' | 'Kamis'>('semua');
+  let selectedDayFilter = $state<string>('semua');
   let classes = $state<ClassItem[]>([]);
   let materials = $state<MaterialItem[]>([]);
   let assignments = $state<AssignmentItem[]>([]);
@@ -82,8 +92,41 @@ export function useTeacherDashboard() {
     assignments.filter((a) => (a.submission_count ?? 0) > 0)
   );
 
+  const dynamicScheduleData = $derived.by(() => {
+    const configuredClasses = classes.filter((c) => !!c.scheduleDay && !!c.scheduleTime);
+    if (configuredClasses.length === 0) {
+      return defaultScheduleFallback;
+    }
+
+    const tagTones: Array<'warning' | 'info' | 'danger' | 'success' | 'neutral'> = ['warning', 'info', 'danger', 'success', 'neutral'];
+    const dayMap = new Map<string, { day: string; dayCode: number; slots: any[] }>();
+
+    configuredClasses.forEach((c, idx) => {
+      const day = c.scheduleDay || 'Senin';
+      const dayCode = dayCodeMap[day] ?? 1;
+      if (!dayMap.has(day)) {
+        dayMap.set(day, {
+          day,
+          dayCode,
+          slots: [],
+        });
+      }
+      const group = dayMap.get(day)!;
+      group.slots.push({
+        time: c.scheduleTime || '08.00 - 09.30',
+        code: c.name,
+        name: `Kelas ${c.level} ${c.name}`,
+        room: c.room || 'Ruang Kelas',
+        desc: `Kelas ${c.level} ${c.name} (${c.academicYear || 'Aktif'}).`,
+        tagTone: tagTones[idx % tagTones.length],
+      });
+    });
+
+    return Array.from(dayMap.values());
+  });
+
   const isTodayTeachingDay = $derived(
-    currentDayIndex === 1 || currentDayIndex === 4
+    dynamicScheduleData.some((d) => d.dayCode === currentDayIndex)
   );
 
   return {
@@ -94,10 +137,10 @@ export function useTeacherDashboard() {
     get quizzes() { return quizzes; },
     get loading() { return loading; },
     get selectedDayFilter() { return selectedDayFilter; },
-    set selectedDayFilter(val: 'semua' | 'Senin' | 'Kamis') { selectedDayFilter = val; },
+    set selectedDayFilter(val: string) { selectedDayFilter = val; },
     get currentDayIndex() { return currentDayIndex; },
     get isTodayTeachingDay() { return isTodayTeachingDay; },
     get pendingGradingAssignments() { return pendingGradingAssignments; },
-    scheduleData: teacherScheduleData,
+    get scheduleData() { return dynamicScheduleData; },
   };
 }

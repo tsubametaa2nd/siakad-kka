@@ -20,10 +20,12 @@ export const assertTeacherOwnsClass = async (teacherId: string, classId: string)
 };
 
 export const createClass = async (teacherId: string, body: CreateClassBody) => {
-  return await classesRepo.createClass({
+  const newClass = await classesRepo.createClass({
     ...body,
     homeroomTeacherId: teacherId,
   });
+  await classesRepo.addTeachingAssignment(newClass.id, teacherId);
+  return newClass;
 };
 
 import { extractSpreadsheetId } from "../grading/grading.sheets";
@@ -35,6 +37,9 @@ export const updateClass = async (teacherId: string, classId: string, body: Part
     gradeLevel: body.gradeLevel,
     academicYear: body.academicYear,
     spreadsheetId: body.spreadsheetId !== undefined ? (extractSpreadsheetId(body.spreadsheetId) || null) : undefined,
+    scheduleDay: body.scheduleDay !== undefined ? (body.scheduleDay ? body.scheduleDay.trim() : null) : undefined,
+    scheduleTime: body.scheduleTime !== undefined ? (body.scheduleTime ? body.scheduleTime.trim() : null) : undefined,
+    room: body.room !== undefined ? (body.room ? body.room.trim() : null) : undefined,
   });
 };
 
@@ -193,4 +198,22 @@ const parseCSVLine = (line: string): string[] => {
   }
   result.push(current);
   return result;
+};
+
+export const assignTeacherToClass = async (requestingTeacherId: string, classId: string, targetTeacherId: string) => {
+  await assertTeacherOwnsClass(requestingTeacherId, classId);
+
+  const teacherProfiles = await classesRepo.findProfilesByIds([targetTeacherId]);
+  if (!teacherProfiles || teacherProfiles.length === 0 || teacherProfiles[0].role !== "teacher") {
+    throw BadRequest("Akun guru tidak ditemukan atau bukan role guru");
+  }
+
+  await classesRepo.addTeachingAssignment(classId, targetTeacherId);
+  return { assigned: true, classId, teacherId: targetTeacherId };
+};
+
+export const getClassTeachers = async (classId: string) => {
+  const cls = await classesRepo.findClassById(classId);
+  if (!cls) throw NotFound("Kelas tidak ditemukan");
+  return await classesRepo.findClassTeachers(classId);
 };

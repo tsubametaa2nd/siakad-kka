@@ -165,21 +165,29 @@
   {:else if data && currentSub}
     {@const isGroup = data.assignment.type === 'group'}
     <div class="flex flex-col gap-4">
-      <div class="border-[3px] border-black bg-surface p-4 shadow-brutal flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
+      <div class="border-[3px] border-black bg-surface p-3.5 sm:p-4 shadow-brutal flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div class="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 w-full sm:w-auto flex-wrap">
           <Button variant="surface" size="sm" disabled={currentIndex === 0} onclick={() => { currentIndex -= 1; focusScoreInput(); }}>
-            <span class="flex items-center gap-1"><ChevronLeft size={16} /> {isGroup ? 'Kelompok Sebelum' : 'Siswa Sebelum'}</span>
+            <span class="flex items-center gap-1">
+              <ChevronLeft size={16} />
+              <span class="hidden sm:inline">{isGroup ? 'Kelompok Sebelum' : 'Siswa Sebelum'}</span>
+              <span class="sm:hidden">Sebelum</span>
+            </span>
           </Button>
           <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-            <span class="font-display font-black text-sm uppercase bg-yellow-200 px-2 py-0.5 border border-black">
+            <span class="font-display font-black text-xs sm:text-sm uppercase bg-yellow-200 px-2 py-0.5 border border-black">
               {isGroup ? 'Kelompok' : 'Siswa'} {currentIndex + 1} dari {filteredSubmissions.length}
             </span>
-            <span class="font-display font-black text-base uppercase text-black">
+            <span class="font-display font-black text-sm sm:text-base uppercase text-black">
               {currentSub.group_name || currentSub.student_name} {#if currentSub.identifier && !isGroup}<span class="font-mono text-xs text-gray-700">({currentSub.identifier})</span>{/if}
             </span>
           </div>
           <Button variant="surface" size="sm" disabled={currentIndex === filteredSubmissions.length - 1} onclick={() => { currentIndex += 1; focusScoreInput(); }}>
-            <span class="flex items-center gap-1">{isGroup ? 'Kelompok Berikut' : 'Siswa Berikut'} <ChevronRight size={16} /></span>
+            <span class="flex items-center gap-1">
+              <span class="hidden sm:inline">{isGroup ? 'Kelompok Berikut' : 'Siswa Berikut'}</span>
+              <span class="sm:hidden">Berikut</span>
+              <ChevronRight size={16} />
+            </span>
           </Button>
         </div>
         <Badge tone={currentSub.status === 'Dinilai' ? 'warning' : currentSub.status === 'Sudah' ? 'info' : currentSub.status === 'Telat' ? 'danger' : 'neutral'}>
@@ -274,7 +282,10 @@
 
               <div class="border-t-2 border-black pt-3 flex flex-col gap-2">
                 <Button type="submit" variant="primary" loading={submitting} class="w-full">
-                  <span class="flex items-center justify-center gap-1.5"><Save size={16} /> Simpan & Berikutnya (Enter)</span>
+                  <span class="flex items-center justify-center gap-1.5">
+                    <Save size={16} />
+                    {currentSub.status === 'Dinilai' ? 'Perbarui Nilai & Berikutnya' : 'Simpan & Berikutnya'}
+                  </span>
                 </Button>
               </div>
             </form>

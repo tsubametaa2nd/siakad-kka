@@ -11,6 +11,7 @@
   import Card from '../../lib/components/ui/Card.svelte';
   import EmptyState from '../../lib/components/ui/EmptyState.svelte';
   import Input from '../../lib/components/ui/Input.svelte';
+  import Select from '../../lib/components/ui/Select.svelte';
   import Skeleton from '../../lib/components/ui/Skeleton.svelte';
   import Table from '../../lib/components/ui/Table.svelte';
   import Tabs from '../../lib/components/ui/Tabs.svelte';
@@ -41,7 +42,20 @@
   let editLevel = $state('');
   let editAcademicYear = $state('');
   let editSpreadsheetId = $state('');
+  let editScheduleDay = $state('');
+  let editScheduleTime = $state('');
+  let editRoom = $state('');
   let submittingSettings = $state(false);
+
+  const dayOptions = [
+    { value: '', label: 'Belum Ditentukan' },
+    { value: 'Senin', label: 'Senin' },
+    { value: 'Selasa', label: 'Selasa' },
+    { value: 'Rabu', label: 'Rabu' },
+    { value: 'Kamis', label: 'Kamis' },
+    { value: 'Jumat', label: 'Jumat' },
+    { value: 'Sabtu', label: 'Sabtu' },
+  ];
 
   const detailTabs = [
     { id: 'students', label: 'Daftar Siswa', icon: Users },
@@ -77,6 +91,9 @@
       editLevel = classData.level;
       editAcademicYear = classData.academicYear;
       editSpreadsheetId = classData.spreadsheetId || '';
+      editScheduleDay = classData.scheduleDay || '';
+      editScheduleTime = classData.scheduleTime || '';
+      editRoom = classData.room || '';
     } catch (err: any) {
       error = err.message || 'Gagal memuat detail kelas';
     } finally {
@@ -114,9 +131,12 @@
         name: editName,
         level: editLevel,
         academicYear: editAcademicYear,
-        spreadsheetId: editSpreadsheetId
+        spreadsheetId: editSpreadsheetId,
+        scheduleDay: editScheduleDay,
+        scheduleTime: editScheduleTime,
+        room: editRoom,
       });
-      toastStore.add('Pengaturan kelas berhasil diperbarui!', 'success');
+      toastStore.add('Pengaturan & jadwal kelas berhasil diperbarui!', 'success');
       await loadClassData();
     } catch (err: any) {
       toastStore.add(err.message || 'Gagal memperbarui pengaturan kelas', 'danger');
@@ -213,6 +233,15 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Tingkat Kelas" required={true} bind:value={editLevel} />
               <Input label="Tahun Ajaran" required={true} bind:value={editAcademicYear} />
+            </div>
+
+            <div class="border-t-2 border-black pt-3 mt-1 flex flex-col gap-3">
+              <h4 class="font-display font-black text-sm uppercase text-black">Jadwal & Ruangan Mengajar Kelas</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Select label="Hari Mengajar" options={dayOptions} bind:value={editScheduleDay} />
+                <Input label="Jam / Waktu Sesi" bind:value={editScheduleTime} placeholder="Contoh: 08.15 - 09.45" hint="Jam sesi pelajaran" />
+                <Input label="Ruangan / Laboratorium" bind:value={editRoom} placeholder="Contoh: Lab AK" hint="Lokasi kelas / lab" />
+              </div>
             </div>
 
             <div class="flex flex-col gap-1.5 pt-2">

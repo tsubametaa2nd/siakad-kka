@@ -3,12 +3,13 @@ import { Elysia } from "elysia";
 import { authGuard, requireRole } from "../../shared/middleware/auth";
 import { ok } from "../../shared/utils/response";
 import * as classesService from "./classes.service";
-import { createClassSchema, updateClassSchema, enrollSchema, importSpreadsheetSchema } from "./classes.schema";
+import { createClassSchema, updateClassSchema, enrollSchema, importSpreadsheetSchema, assignTeacherSchema } from "./classes.schema";
 
 export const classRoutes = new Elysia({ prefix: "/classes" })
   .use(authGuard)
   .get("/my", async ({ user }) => ok(await classesService.getStudentClasses(user.id)))
   .get("/:id/students", async ({ user, params }) => ok(await classesService.getClassStudents(user.id, user.role, params.id)))
+  .get("/:id/teachers", async ({ params }) => ok(await classesService.getClassTeachers(params.id)))
   .get("/:id", async ({ user, params }) => ok(await classesService.getClassById(user.id, params.id)))
   .guard({ beforeHandle: requireRole("teacher") }, (app) =>
     app
@@ -17,6 +18,7 @@ export const classRoutes = new Elysia({ prefix: "/classes" })
       .put("/:id", async ({ user, params, body }) => ok(await classesService.updateClass(user.id, params.id, body)), { body: updateClassSchema })
       .post("/:id/enroll", async ({ user, params, body }) => ok(await classesService.enrollStudents(user.id, params.id, body.studentIds)), { body: enrollSchema })
       .post("/:id/import-spreadsheet", async ({ user, params, body }) => ok(await classesService.importFromSpreadsheet(user.id, params.id, body.spreadsheetUrl)), { body: importSpreadsheetSchema })
+      .post("/:id/assign-teacher", async ({ user, params, body }) => ok(await classesService.assignTeacherToClass(user.id, params.id, body.teacherId)), { body: assignTeacherSchema })
   );
 
 

@@ -22,6 +22,7 @@
   let error = $state('');
 
   let showCreateModal = $state(false);
+  let editingAssignment = $state<AssignmentItem | null>(null);
   let targetAssignment = $state<AssignmentItem | null>(null);
   let showDeleteConfirm = $state(false);
   let showForceDeleteConfirm = $state(false);
@@ -72,6 +73,16 @@
     loadAssignments(val);
   };
 
+  const openCreateModal = () => {
+    editingAssignment = null;
+    showCreateModal = true;
+  };
+
+  const promptEditAssignment = (item: AssignmentItem) => {
+    editingAssignment = item;
+    showCreateModal = true;
+  };
+
   const promptDeleteAssignment = (id: string) => {
     const found = assignments.find((a) => a.id === id);
     if (found) {
@@ -108,7 +119,7 @@
     <div class="w-full sm:max-w-xs">
       <Select label="Saring Kelas" options={classFilterOptions} bind:value={selectedClassId} onchange={handleClassFilterChange} disabled={loadingClasses} />
     </div>
-    <Button variant="primary" onclick={() => showCreateModal = true}>
+    <Button variant="primary" onclick={openCreateModal}>
       + Buat Tugas
     </Button>
   </div>
@@ -124,19 +135,19 @@
   {:else if assignments.length === 0}
     <EmptyState icon={FileText} title="Belum Ada Tugas" description="Belum ada tugas yang dibuat untuk kelas ini. Klik '+ Buat Tugas' untuk membuat tugas baru.">
       {#snippet action()}
-        <Button variant="primary" onclick={() => showCreateModal = true}>+ Buat Tugas Pertama</Button>
+        <Button variant="primary" onclick={openCreateModal}>+ Buat Tugas Pertama</Button>
       {/snippet}
     </EmptyState>
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {#each assignments as item (item.id)}
-        <TugasCard {item} isTeacher={true} ondelete={promptDeleteAssignment} />
+        <TugasCard {item} isTeacher={true} onedit={promptEditAssignment} ondelete={promptDeleteAssignment} />
       {/each}
     </div>
   {/if}
 </AppShell>
 
-<BuatTugasModal bind:open={showCreateModal} onSuccess={() => loadAssignments(selectedClassId)} />
+<BuatTugasModal bind:open={showCreateModal} assignmentToEdit={editingAssignment} onSuccess={() => loadAssignments(selectedClassId)} />
 
 <ConfirmDialog
   bind:open={showDeleteConfirm}
