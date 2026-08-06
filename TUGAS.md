@@ -44,19 +44,97 @@ Pengembangan sistem ini dibatasi pada batasan-batasan berikut:
 
 ## BAB II LANDASAN TEORI
 
-### 2.1 Metodologi Pengembangan
-Metodologi pengembangan yang diterapkan adalah **Component-Driven Development (CDD)** yang dikombinasikan dengan arsitektur **Monorepo** berbasis **Turborepo**.
+### 2.1 Metodologi Pengembangan & Manajemen Kebutuhan Sistem
+
+Metodologi pengembangan yang diterapkan pada proyek **Ngajar (SIAKAD KKA)** memadukan pendekatan **Agile Software Development** berbasis **Product Backlog** dan **Software Requirements Specification (SRS)** dengan prinsip **Component-Driven Development (CDD)** dalam arsitektur **Monorepo**.
 
 ```mermaid
-graph LR
-    subgraph Monorepo System
-        A[Root Workspace] --> B[apps/frontend - Svelte 5]
-        A --> C[apps/backend - ElysiaJS]
-        A --> D[packages/shared - Types & Utils]
+graph TD
+    subgraph Agile Requirements Engineering
+        A[Software Requirements Specification - SRS] --> B[Product Backlog & User Stories]
+        B --> C[Requirement Traceability Matrix - RTM]
+    end
+
+    subgraph Development Architecture - Monorepo & CDD
+        C --> D[apps/frontend - Svelte 5 CDD]
+        C --> E[apps/backend - ElysiaJS APIs]
+        C --> F[Hybrid DB - Postgres & AstraDB]
     end
 ```
 
-CDD menekankan pembuatan komponen-komponen antarmuka yang independen, modular, dan dapat digunakan kembali (*reusable*). Di sisi arsitektur kode, pendekatan *Monorepo* memungkinkan pengelolaan kode *frontend* dan *backend* dalam satu repositori terpusat, mempermudah pemakaian ulang tipe data TypeScript (*shared types*), serta mempercepat alur kerja integrasi (*CI/CD*).
+#### 2.1.1 Metodologi Agile & Pengelolaan Kebutuhan (SRS & Backlog)
+**Agile Software Development** adalah pendekatan pengembangan perangkat lunak secara iteratif dan inkremental, yang berfokus pada kolaborasi, adaptabilitas terhadap perubahan, dan penyampaian fitur bermanfaat secara bertahap. Pengelolaan kebutuhan sistem dilakukan dengan menyusun spesifikasi formal **Software Requirements Specification (SRS)** berdasarkan standar IEEE 830 / ISO/IEC/IEEE 29148 dan diturunkan ke dalam **Product Backlog** berformat *User Story*.
+
+#### 2.1.2 Tabel Software Requirements Specification (SRS) Fitur Terimplementasi
+
+Berikut adalah daftar spesifikasi kebutuhan perangkat lunak (SRS) untuk seluruh fitur yang telah selesai diimplementasikan pada web platform **Ngajar (SIAKAD KKA)**:
+
+| SRS ID | Modul Fitur Web | Spesifikasi Kebutuhan Sistem (SRS Statement) | Target Peran | Kategori |
+| :--- | :--- | :--- | :--- | :---: |
+| **FR-AUTH-01** | Autentikasi | Sistem menyediakan formulir login berbasis identitas (*username/NIP/NIS*) dan kata sandi. | Admin, Guru, Siswa | Fungsional |
+| **FR-AUTH-02** | Autentikasi | Sistem memverifikasi kata sandi via **Argon2id** dan menerbitkan token **JWT** terenkripsi. | System | Fungsional |
+| **FR-AUTH-03** | Autentikasi | Sistem membatasi rute web berdasarkan peran pengguna (**ADMIN**, **GURU**, **SISWA**). | Admin, Guru, Siswa | Fungsional |
+| **FR-AUTH-04** | Autentikasi | Sistem dapat merestorasi profil pengguna yang aktif via endpoint `/api/auth/me`. | Admin, Guru, Siswa | Fungsional |
+| **FR-CLS-01** | Kelas | Admin/Guru dapat membuat kelas akademik baru, menentukan tahun ajaran & wali kelas. | Admin, Guru | Fungsional |
+| **FR-CLS-02** | Kelas | Pengguna dapat melihat daftar kelas yang diampu (Guru) atau diikuti (Siswa). | Guru, Siswa | Fungsional |
+| **FR-CLS-03** | Kelas | Sistem mendukung pendaftaran siswa (*enrollment*) kelas tanpa duplikasi data. | Guru, Siswa | Fungsional |
+| **FR-CLS-04** | Kelas | Guru dapat menautkan ID Google Spreadsheet pada kelas untuk sinkronisasi rekap nilai. | Guru | Fungsional |
+| **FR-GRP-01** | Kelompok | Pengguna dapat membuat kelompok belajar baru di kelas dengan kuota `max_members`. | Guru, Siswa | Fungsional |
+| **FR-GRP-02** | Kelompok | Siswa dapat bergabung (*join*) atau keluar (*leave*) dari kelompok belajar. | Siswa | Fungsional |
+| **FR-GRP-03** | Kelompok | Ketua kelompok (*leader*) dapat mengelola keanggotaan kelompoknya. | Siswa (Leader) | Fungsional |
+| **FR-MAT-01** | Materi | Guru dapat mempublikasikan modul materi pembelajaran beserta lampiran berkas/tautan. | Guru | Fungsional |
+| **FR-MAT-02** | Materi | Siswa dapat mengakses, membaca, dan mengunduh berkas materi pembelajaran kelas. | Siswa | Fungsional |
+| **FR-TSK-01** | Tugas | Guru dapat membuat penugasan (Individu/Kelompok) dengan instruksi & *due date*. | Guru | Fungsional |
+| **FR-TSK-02** | Tugas | Siswa dapat mengunggah hasil pekerjaan tugas berupa berkas/tautan sebelum deadline. | Siswa | Fungsional |
+| **FR-TSK-03** | Tugas | Guru dapat memantau status pengumpulan tugas siswa per kelas secara real-time. | Guru | Fungsional |
+| **FR-QZ-01** | Kuis | Guru dapat merancang kuis interaktif pilihan ganda dengan durasi timer menit. | Guru | Fungsional |
+| **FR-QZ-02** | Kuis | Siswa dapat mengerjakan kuis interaktif dengan penunjuk waktu mundur & auto-submit. | Siswa | Fungsional |
+| **FR-QZ-03** | Kuis | Siswa dapat melihat peringkat skor tertinggi kelas melalui halaman **Quiz Leaderboard**. | Siswa | Fungsional |
+| **FR-GRD-01** | Penilaian | Guru dapat memberikan nilai angka (0–100) dan catatan evaluasi (*feedback*) pada tugas. | Guru | Fungsional |
+| **FR-GRD-02** | Penilaian | Siswa dapat melihat rekapitulasi nilai tugas dan kuis beserta umpan balik guru. | Siswa | Fungsional |
+| **FR-SET-01** | Pengaturan | Pengguna dapat memperbarui kata sandi akun dengan verifikasi kata sandi lama. | Admin, Guru, Siswa | Fungsional |
+
+---
+
+#### 2.1.3 Tabel Product Backlog Fitur Terimplementasi (Agile User Stories)
+
+Daftar **Product Backlog** berikut merangkum *User Story* dan *Acceptance Criteria* untuk seluruh fitur yang telah dibangun dan diuji pada aplikasi web:
+
+| Backlog ID | Modul Web | User Story (Agile Format) | Kriteria Penerimaan (Acceptance Criteria) | Status Terimplementasi |
+| :--- | :--- | :--- | :--- | :---: |
+| **PB-AUTH-01** | Auth | *As a user, I want to login with my username/NIP/NIS so that I can access my dashboard.* | - Input kredensial divalidasi Argon2id.<br>- Menghasilkan token JWT saat login sukses.<br>- Pesan error ditampilkan jika login gagal. | **100% Selesai** |
+| **PB-AUTH-02** | Auth | *As a system, I want to restrict unauthorized access so that users only see appropriate pages.* | - Middleware `RouteGuard.svelte` memverifikasi token & role.<br>- Redirect otomatis ke login/home jika tidak berhak. | **100% Selesai** |
+| **PB-CLS-01** | Kelas | *As a teacher, I want to view my class list and homeroom assignment so that I can manage my students.* | - Menampilkan kartu daftar kelas diampu.<br>- Menampilkan daftar siswa enrolled & wali kelas. | **100% Selesai** |
+| **PB-CLS-02** | Kelas | *As an admin/teacher, I want to create a new class so that academic groups can be initialized.* | - Form input nama kelas, grade level, & tahun ajaran.<br>- Penetapan wali kelas dari daftar profil guru. | **100% Selesai** |
+| **PB-GRP-01** | Kelompok | *As a student/teacher, I want to create a study group so that we can collaborate on group assignments.* | - Form membuat kelompok dengan batas `max_members`.<br>- Pembuat kelompok otomatis menjadi `leader`. | **100% Selesai** |
+| **PB-GRP-02** | Kelompok | *As a student, I want to join or leave a study group so that I can pick my team.* | - Tombol Join/Leave kelompok berfungsi interaktif.<br>- Validasi kuota mencegah kelebihan anggota. | **100% Selesai** |
+| **PB-MAT-01** | Materi | *As a teacher, I want to upload and share learning materials so that students can study.* | - Form judul, instruksi, & URL berkas lampiran.<br>- Tersimpan di AstraDB NoSQL collection `materials`. | **100% Selesai** |
+| **PB-MAT-02** | Materi | *As a student, I want to read class materials online so that I can learn the subject.* | - Halaman `MateriBaca.svelte` menampilkan modul & lampiran.<br>- Tautan berkas lampiran dapat dibuka/diunduh. | **100% Selesai** |
+| **PB-TSK-01** | Tugas | *As a teacher, I want to create assignments with due dates so that students know their task timeline.* | - Setting judul tugas, instruksi, & tanggal tenggat.<br>- Opsi penugasan tipe Individu atau Kelompok. | **100% Selesai** |
+| **PB-TSK-02** | Tugas | *As a student, I want to submit my assignment solution so that my teacher can evaluate it.* | - Form submit URL / berkas pengumpulan.<br>- Status pengumpulan tersimpan di AstraDB `submissions`. | **100% Selesai** |
+| **PB-QZ-01** | Kuis | *As a teacher, I want to create multiple-choice quizzes so that I can test student comprehension.* | - Builder kuis untuk membuat bank soal & pilihan jawaban.<br>- Pengaturan durasi pengerjaan kuis (menit). | **100% Selesai** |
+| **PB-QZ-02** | Kuis | *As a student, I want to take quizzes with a countdown timer so that I can get instant score feedback.* | - Antarmuka kuis interaktif dengan timer mundur.<br>- Auto-submit otomatis jika timer habis. | **100% Selesai** |
+| **PB-QZ-03** | Kuis | *As a student, I want to view the quiz leaderboard so that I can see my class ranking.* | - Halaman `QuizLeaderboard.svelte` menampilkan skor tertinggi.<br>- Pemeringkatan otomatis berdasarkan skor & waktu. | **100% Selesai** |
+| **PB-GRD-01** | Penilaian | *As a teacher, I want to grade submissions and write feedback so that students know their performance.* | - Input nilai angka (0-100) & kolom saran/feedback.<br>- Data rekap tersimpan di AstraDB `grades`. | **100% Selesai** |
+| **PB-GRD-02** | Penilaian | *As a student, I want to see my grades and feedback summary so that I can track my academic progress.* | - Halaman rekapitulasi nilai tugas & kuis per mata pelajaran.<br>- Menampilkan umpan balik tertulis dari guru. | **100% Selesai** |
+| **PB-SET-01** | Pengaturan | *As a user, I want to update my password so that my account stays secure.* | - Form update password pada `Pengaturan.svelte`.<br>- Re-hashing password baru menggunakan Argon2id. | **100% Selesai** |
+
+---
+
+#### 2.1.4 Component-Driven Development (CDD) & Monorepo
+* **Component-Driven Development (CDD)**: Metode pembangunan antarmuka berbasis komponen independen, modular, dan dapat digunakan kembali (*reusable*).
+* **Monorepo (Turborepo)**: Struktur repositori tunggal yang memuat kode *frontend* (`apps/frontend`), *backend* (`apps/backend`), dan paket berbagi data (`packages/shared`), mempermudah konsistensi tipe data TypeScript (*shared types*) dan mempercepat alur integrasi (*CI/CD*).
+
+#### 2.1.5 Matriks Ringkasan Metodologi & Arsitektur Pengembangan
+
+| Konsep / Artefak | Standar / Metode | Deskripsi & Peran dalam Proyek Ngajar |
+| :--- | :--- | :--- |
+| **Agile Software Development** | Iterative & Incremental Framework | Pendekatan pengembangan dinamis untuk memfasilitasi iterasi fitur secara cepat dan adaptif. |
+| **Software Requirements Specification (SRS)** | IEEE 830 / ISO/IEC/IEEE 29148 | Spesifikasi Kebutuhan Fungsional (`FR-AUTH` s/d `FR-SET`) & Non-Fungsional (`NFR`) sebagai acuan sistem. |
+| **Product Backlog & User Stories** | Agile Requirements Artifact | Daftar terurut fitur sistem berbasis sudut pandang peran (*User Story*) & *Acceptance Criteria*. |
+| **Requirement Traceability Matrix (RTM)** | Traceability & Scope Management | Matriks pelacakan 1-ke-1 dari SRS ID ke Rute Frontend, API Backend, dan Entitas Basis Data. |
+| **Component-Driven Development (CDD)** | Modular UI Architecture | Metode perancangan komponen antarmuka Svelte 5 yang modular dan dapat digunakan kembali (*reusable*). |
+| **Monorepo Architecture** | Turborepo Workspaces | Pengelolaan proyek terpusat (`apps/frontend`, `apps/backend`, `packages/shared`) dalam satu repositori. |
 
 ---
 
@@ -113,32 +191,126 @@ Proyek ini mengadopsi model **Hybrid Database** untuk mengoptimalkan kinerja dan
 
 ## BAB III ANALISIS PERANCANGAN
 
-### 3.1 Analisis Kebutuhan
+### 3.1 Analisis Kebutuhan & Spesifikasi Sistem (SRS & Backlog)
 
-#### A. Kebutuhan Fungsional (Functional Requirements)
-1. **Sistem Autentikasi & Otorisasi**:
-   * Pengguna dapat melakukan login menggunakan identitas (*username/NIP/NIS*) dan kata sandi.
-   * Sistem memverifikasi kredensial via Argon2id dan menerbitkan token JWT.
-   * Sistem membatasi hak akses berdasarkan peran (**ADMIN**, **GURU**, **SISWA**).
-2. **Manajemen Kelas & Pengajaran**:
-   * Admin/Guru dapat membuat kelas baru, menentukan wali kelas, dan mendaftarkan siswa (*enrollment*).
-3. **Manajemen Kelompok Belajar**:
-   * Siswa/Guru dapat membentuk kelompok di dalam kelas dengan batas maksimum anggota (*max members*).
-   * Ketua kelompok (*leader*) dapat mengelola keanggotaan kelompoknya.
-4. **Materi Pembelajaran & Tugas**:
-   * Guru dapat membuat, memperbarui, dan menghapus materi serta tugas pembelajaran.
-   * Siswa dapat mengunduh materi dan mengunggah tautan/berkas pengumpulan tugas.
-5. **Kuis & Penilaian**:
-   * Guru dapat merancang kuis interaktif dan memberikan nilai beserta umpan balik (*feedback*) pada tugas siswa.
-   * Siswa dapat mengerjakan kuis dan melihat hasil penilaian.
-
-#### B. Kebutuhan Non-Fungsional (Non-Functional Requirements)
-1. **Keamanan (Security)**: Kata sandi tersimpan dalam bentuk *hash* Argon2id; komunikasi API dilindungi oleh CORS header; otorisasi dibatasi oleh JWT.
-2. **Kinerja (Performance)**: Runtime Bun dan ElysiaJS memberikan latensi respon API di bawah 50ms untuk operasi biasa.
-3. **Keandalan (Reliability)**: Penanganan otomatis *connection stream reset* pada AstraDB menggunakan mekanisme *Exponential Backoff Retry*.
-4. **Portabilitas (Portability)**: Backend dapat dijalankan di lingkungan mana pun yang mendukung Docker tanpa modifikasi kode.
+Proses analisis kebutuhan dilakukan untuk memetakan seluruh kebutuhan sistem dari sudut pandang pemangku kepentingan (*stakeholders*), mencakup **Admin**, **Guru**, dan **Siswa**. Seluruh kebutuhan fungsional dan non-fungsional didefinisikan ke dalam **Software Requirements Specification (SRS)**, yang kemudian diturunkan menjadi **Product Backlog** berbasis *User Stories* dan terhubung secara eksplisit ke komponen antarmuka web serta rute API backend melalui **Requirement Traceability Matrix (RTM)**.
 
 ---
+
+#### 3.1.1 Software Requirements Specification (SRS)
+
+##### A. Kebutuhan Fungsional (Functional Requirements)
+
+1. **Modul Autentikasi & Manajemen Sesi (AUTH)**
+   * **FR-AUTH-01**: Sistem harus menyediakan antarmuka login berbasis *username/NIP/NIS* dan *password*.
+   * **FR-AUTH-02**: Sistem harus melakukan verifikasi kata sandi menggunakan enkripsi **Argon2id** dan menerbitkan JSON Web Token (**JWT**) terenkripsi.
+   * **FR-AUTH-03**: Sistem harus mengamankan rute web berdasarkan peran pengguna (**ADMIN**, **GURU**, **SISWA**) melalui *Route Guard* di sisi *frontend* dan *Auth Middleware* di sisi *backend*.
+   * **FR-AUTH-04**: Sistem harus dapat menyediakan endpoint `/api/auth/me` untuk mengembalikan data identitas profil pengguna yang sedang aktif (*session restoration*).
+
+2. **Modul Manajemen Kelas & Akademik (CLS)**
+   * **FR-CLS-01**: Admin/Guru dapat membuat kelas akademik baru, menentukan tingkat kelas, tahun ajaran, dan menetapkan Wali Kelas (*homeroom teacher*).
+   * **FR-CLS-02**: Pengguna dapat melihat daftar kelas yang diampu (bagi Guru) atau kelas yang diikuti (bagi Siswa).
+   * **FR-CLS-03**: Sistem harus mendukung pendaftaran siswa (*enrollment*) ke dalam kelas dengan indeks unik untuk mencegah pendaftaran ganda.
+   * **FR-CLS-04**: Guru dapat menautkan ID Google Spreadsheet (*spreadsheet_id*) pada detail kelas untuk keperluan sinkronisasi nilai rekapitulasi.
+
+3. **Modul Manajemen Kelompok Belajar (GRP)**
+   * **FR-GRP-01**: Guru atau Siswa dapat membuat kelompok belajar baru di dalam suatu kelas dengan menentukan batas kapasitas maksimal anggota (*max_members*).
+   * **FR-GRP-02**: Siswa dapat memilih dan bergabung ke dalam kelompok yang masih memiliki kuota anggota.
+   * **FR-GRP-03**: Ketua kelompok (*leader*) dapat mengelola keanggotaan kelompok, memindahkan kepemimpinan, atau menghapus anggota.
+   * **FR-GRP-04**: Siswa dapat keluar (*leave*) dari kelompok belajar selama pengumpulan tugas kelompok belum diselesaikan.
+
+4. **Modul Materi Pembelajaran (MAT)**
+   * **FR-MAT-01**: Guru dapat membuat, menyunting, dan menghapus modul materi pembelajaran lengkap dengan judul, deskripsi rich-text, dan lampiran berkas/tautan luar.
+   * **FR-MAT-02**: Siswa dapat mengakses, membaca, dan mengunduh berkas materi pembelajaran yang telah dipublikasikan oleh Guru di kelasnya.
+   * **FR-MAT-03**: Sistem harus menyimpan konten dokumen materi secara dinamis pada basis data NoSQL AstraDB collection `materials`.
+
+5. **Modul Tugas & Pengumpulan / Submission (TSK)**
+   * **FR-TSK-01**: Guru dapat membuat penugasan (*assignment*) baru dengan menentukan judul, deskripsi/instruksi, tenggat waktu (*due date*), serta tipe penugasan (Individu / Kelompok).
+   * **FR-TSK-02**: Siswa dapat mengunggah hasil pekerjaan tugas berupa berkas lampiran / tautan URL (*content_url*) sebelum batas waktu berakhir.
+   * **FR-TSK-03**: Sistem harus mencatat status pengumpulan (`SUBMITTED` / `GRADED`) serta waktu submit (*submitted_at*) pada AstraDB collection `submissions`.
+   * **FR-TSK-04**: Guru dapat melihat daftar rekap pengumpulan tugas siswa per kelas secara *real-time*.
+
+6. **Modul Kuis Interaktif & Leaderboard (QZ)**
+   * **FR-QZ-01**: Guru dapat merancang kuis interaktif pilihan ganda (*multiple choice*), menentukan durasi pengerjaan (dalam menit), serta menambahkan bank soal.
+   * **FR-QZ-02**: Siswa dapat mengerjakan kuis interaktif dengan penunjuk waktu mundur (*countdown timer*) dan opsi pengiriman jawaban otomatis jika durasi habis.
+   * **FR-QZ-03**: Sistem harus menghitung skor kuis secara otomatis setelah disubmit dan menyimpannya pada AstraDB collection `quiz_attempts`.
+   * **FR-QZ-04**: Siswa dapat melihat peringkat skor tertinggi kelas melalui fitur **Quiz Leaderboard**.
+
+7. **Modul Penilaian & Feedback (GRD)**
+   * **FR-GRD-01**: Guru dapat memberikan nilai angka (skala 0–100) dan catatan evaluasi (*feedback*) pada setiap pengumpulan tugas siswa.
+   * **FR-GRD-02**: Sistem harus menyimpan data rekap nilai pada AstraDB collection `grades`.
+   * **FR-GRD-03**: Siswa dapat melihat rekapitulasi nilai tugas dan kuis beserta umpan balik dari Guru pada halaman Nilai.
+   * **FR-GRD-04**: Sistem menyediakan fitur ekspor/sync rekap nilai kelas ke Google Spreadsheet.
+
+8. **Modul Pengaturan & Profil Pengguna (SET)**
+   * **FR-SET-01**: Pengguna dapat melihat rincian informasi profil (Nama Lengkap, NIP/NIS, Peran, Username).
+   * **FR-SET-02**: Pengguna dapat memperbarui kata sandi akun dengan memasukkan kata sandi lama dan kata sandi baru.
+
+---
+
+##### B. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+
+* **NFR-SEC-01 (Keamanan Enkripsi)**: Kata sandi pengguna wajib di-hash menggunakan algoritma **Argon2id** dan token otentikasi ditandatangani secara kriptografis menggunakan **JWT**.
+* **NFR-SEC-02 (CORS & Middlewares)**: Komunikasi API dilindungi oleh mekanisme CORS terpusat yang membatasi *origin* hanya ke domain terdaftar (`.vercel.app`, `.utaaa.my.id`).
+* **NFR-PERF-01 (Performa & Latensi)**: Runtime Bun 1.2 dan framework ElysiaJS harus merespon API request dengan rata-rata waktu tanggap (*response time*) < 50ms.
+* **NFR-REL-01 (Keandalan Jaringan DB)**: Implementasi mekanisme *Exponential Backoff Retry* untuk menangani potensi terputusnya koneksi socket (*stream timeout*) pada AstraDB cloud.
+* **NFR-PORT-01 (Portabilitas)**: Backend dikemas dalam Docker Image berbasis `oven/bun:1.2-alpine` sehingga dapat di-deploy secara konsisten di seluruh lingkungan platform.
+* **NFR-USAB-01 (Antarmuka & Reaktivitas)**: Antarmuka dibangun menggunakan Svelte 5 dengan *Runes reactive state* (`$state`, `$derived`) untuk memberikan transisi halus dan responsif.
+
+---
+
+#### 3.1.2 Product Backlog & User Stories
+
+Berikut adalah daftar **Product Backlog** yang disusun berdasarkan kebutuhan fungsional di atas:
+
+| Backlog ID | Epic / Modul | User Story | Acceptance Criteria | Prioritas | Status |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| **PB-AUTH-01** | Auth | *As a user, I want to login with my credentials so that I can access my personalized dashboard.* | - Form login menerima username & password.<br>- Token JWT diterbitkan jika valid.<br>- Error 401 jika kredensial salah. | High | **Done** |
+| **PB-AUTH-02** | Auth | *As a system, I want to restrict route access based on role so that unauthorized users cannot open admin/teacher pages.* | - Middleware memeriksa JWT & Role.<br>- Redirect otomatis jika role tidak sesuai. | High | **Done** |
+| **PB-CLS-01** | Kelas | *As a teacher, I want to view and manage my assigned classes so that I can deliver course content effectively.* | - Menampilkan kartu daftar kelas.<br>- Menampilkan detail wali kelas & daftar siswa. | High | **Done** |
+| **PB-CLS-02** | Kelas | *As an admin/teacher, I want to create new classes and assign homeroom teachers so that academic structures are maintained.* | - Form pembuatan kelas dengan nama & tahun ajaran.<br>- Dropdown mendaftarkan wali kelas. | Medium | **Done** |
+| **PB-GRP-01** | Kelompok | *As a student/teacher, I want to create study groups with max member limit so that collaborative work is organized.* | - Form membuat kelompok baru.<br>- Menentukan batas maksimum anggota (`max_members`). | Medium | **Done** |
+| **PB-GRP-02** | Kelompok | *As a student, I want to join or leave a study group so that I can work with my peers.* | - Tombol Join/Leave kelompok.<br>- Validasi kuota jika kelompok sudah penuh. | Medium | **Done** |
+| **PB-MAT-01** | Materi | *As a teacher, I want to publish learning materials with file links so that students can study the topics.* | - Form input judul, instruksi, & URL berkas.<br>- Tersimpan otomatis di AstraDB `materials`. | High | **Done** |
+| **PB-MAT-02** | Materi | *As a student, I want to read and download class materials so that I can review course lessons.* | - Halaman daftar & detail baca materi.<br>- Tautan berkas/lampiran dapat dibuka/diunduh. | High | **Done** |
+| **PB-TSK-01** | Tugas | *As a teacher, I want to create assignments with due dates so that students know their homework obligations.* | - Input judul, deskripsi, & due date.<br>- Pilihan tipe tugas (Individu / Kelompok). | High | **Done** |
+| **PB-TSK-02** | Tugas | *As a student, I want to submit assignment links before the deadline so that I get evaluated.* | - Form submit URL / berkas pengumpulan.<br>- Status berubah menjadi `SUBMITTED`. | High | **Done** |
+| **PB-QZ-01** | Kuis | *As a teacher, I want to create interactive quizzes with multiple-choice questions so that I can test student comprehension.* | - Builder kuis dengan opsi jawaban & kunci.<br>- Setting durasi waktu pengerjaan (menit). | High | **Done** |
+| **PB-QZ-02** | Kuis | *As a student, I want to answer quiz questions with a live timer so that I can submit my work in time.* | - Antarmuka kuis interaktif dengan timer.<br>- Auto-submit jika waktu habis. | High | **Done** |
+| **PB-QZ-03** | Kuis | *As a student, I want to see the class quiz leaderboard so that I can benchmark my performance.* | - Halaman leaderboard menampilkan skor tertinggi.<br>- Urutan berdasarkan skor & waktu selesainya. | Medium | **Done** |
+| **PB-GRD-01** | Penilaian | *As a teacher, I want to grade submissions and provide text feedback so that students know their performance.* | - Input nilai 0–100 & kolom catatan feedback.<br>- Rekap tersimpan di AstraDB `grades`. | High | **Done** |
+| **PB-GRD-02** | Penilaian | *As a student, I want to view my grades and feedback summary so that I can evaluate my learning progress.* | - Rekapitulasi nilai tugas & kuis per mata pelajaran.<br>- Menampilkan feedback dari guru. | High | **Done** |
+| **PB-SET-01** | Pengaturan | *As a user, I want to change my account password so that my account remains secure.* | - Form pengubahan kata sandi.<br>- Validasi kata sandi lama via Argon2id. | Medium | **Done** |
+
+---
+
+#### 3.1.3 Requirement Traceability Matrix (RTM)
+
+Tabel berikut menghubungkan **Kode SRS (FR)**, **Product Backlog (PB)**, komponen antarmuka web pada **Frontend Svelte 5**, endpoint API pada **Backend ElysiaJS**, dan entitas penyimpanannya pada **Basis Data Hybrid**:
+
+| SRS ID | Backlog ID | Fitur Utama Web | Route / Komponen Frontend (Svelte 5) | Endpoint Backend (ElysiaJS API) | Entitas Basis Data Target | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| **FR-AUTH-01** | PB-AUTH-01 | Login Pengguna | `src/routes/Login.svelte` | `POST /api/auth/login` | PostgreSQL (`credentials`, `profiles`) | **Done** |
+| **FR-AUTH-02** | PB-AUTH-01 | Verifikasi JWT & Session | `src/lib/components/RouteGuard.svelte` | `POST /api/auth/login` | Encrypted JWT Payload | **Done** |
+| **FR-AUTH-04** | PB-AUTH-01 | Restore User Profile | `src/lib/logic/auth/useAuth.svelte.ts` | `GET /api/auth/me` | PostgreSQL (`profiles`) | **Done** |
+| **FR-CLS-01** | PB-CLS-01 | Manajemen & Detail Kelas | `src/routes/guru/KelasDetail.svelte` | `GET /api/classes/:id` | PostgreSQL (`classes`, `profiles`) | **Done** |
+| **FR-CLS-02** | PB-CLS-02 | Pembuatan Kelas Baru | `src/routes/guru/Kelas.svelte` | `POST /api/classes` | PostgreSQL (`classes`, `teaching_assignments`) | **Done** |
+| **FR-CLS-03** | PB-CLS-01 | Daftar Kelas Siswa | `src/routes/siswa/KelasSaya.svelte` | `GET /api/classes` | PostgreSQL (`enrollments`, `classes`) | **Done** |
+| **FR-GRP-01** | PB-GRP-01 | Pembentukan Kelompok | `src/lib/components/kelompok/CreateGroupModal.svelte` | `POST /api/groups` | PostgreSQL (`groups`, `group_members`) | **Done** |
+| **FR-GRP-02** | PB-GRP-02 | Join / Leave Kelompok | `src/routes/siswa/Kelompok.svelte` | `POST /api/groups/:id/join`<br>`POST /api/groups/:id/leave` | PostgreSQL (`group_members`) | **Done** |
+| **FR-MAT-01** | PB-MAT-01 | Pembuatan Modul Materi | `src/routes/guru/MateriBuat.svelte` | `POST /api/materials` | AstraDB Collection `materials` | **Done** |
+| **FR-MAT-02** | PB-MAT-02 | Pembacaan Materi Siswa | `src/routes/siswa/MateriBaca.svelte` | `GET /api/materials/:id` | AstraDB Collection `materials` | **Done** |
+| **FR-TSK-01** | PB-TSK-01 | Pembuatan Tugas | `src/routes/guru/TugasDetail.svelte` | `POST /api/assignments` | AstraDB Collection `assignments` | **Done** |
+| **FR-TSK-02** | PB-TSK-02 | Pengumpulan Tugas Siswa | `src/routes/siswa/TugasDetail.svelte` | `POST /api/submissions` | AstraDB Collection `submissions` | **Done** |
+| **FR-QZ-01** | PB-QZ-01 | Pembuat Kuis Interaktif | `src/routes/guru/QuizBuat.svelte` | `POST /api/quizzes` | AstraDB Collection `quizzes` | **Done** |
+| **FR-QZ-02** | PB-QZ-02 | Pengerjaan Kuis Siswa | `src/routes/siswa/QuizKerjakan.svelte` | `POST /api/quizzes/:id/submit` | AstraDB Collection `quiz_attempts` | **Done** |
+| **FR-QZ-04** | PB-QZ-03 | Leaderboard Kuis | `src/routes/siswa/QuizLeaderboard.svelte` | `GET /api/quizzes/:id/leaderboard` | AstraDB Collection `quiz_attempts` | **Done** |
+| **FR-GRD-01** | PB-GRD-01 | Penilaian Submission | `src/routes/guru/NilaiTugas.svelte` | `POST /api/grading` | AstraDB Collection `grades` | **Done** |
+| **FR-GRD-03** | PB-GRD-02 | Rekap Nilai Siswa | `src/routes/siswa/Nilai.svelte` | `GET /api/grading/student` | AstraDB Collection `grades` | **Done** |
+| **FR-SET-01** | PB-SET-01 | Pengaturan Password | `src/routes/guru/Pengaturan.svelte`<br>`src/routes/siswa/Pengaturan.svelte` | `POST /api/auth/change-password` | PostgreSQL (`credentials`) | **Done** |
+
+---
+
 
 ### 3.2 Perancangan Basis Data
 
@@ -628,34 +800,141 @@ export const initAstraCollections = async () => {
 
 ### 4.3 Implementasi Fitur CRUD
 
-Seluruh rute API didaftarkan pada server utama ElysiaJS ([`apps/backend/src/index.ts`](file:///c:/project-uta/ngajar/apps/backend/src/index.ts)) di bawah prefix `/api`:
+Implementasi operasi CRUD (*Create, Read, Update, Delete*) pada sistem **Ngajar (SIAKAD KKA)** mencakup pengelolaan entitas data relasional (PostgreSQL via Drizzle ORM/Supabase) dan data dokumen NoSQL (DataStax AstraDB API). Di bawah ini disajikan rincian kode sumber backend (ElysiaJS) beserta alur pengujian (*screenshot*) untuk **3 entitas/tabel utama** sistem:
+
+---
+
+#### 4.3.1 Operasi CRUD Entitas Kelas (`classes` - PostgreSQL Relational DB)
+
+Modul kelas mengelola data ruang kelas akademik, jadwal, tingkat kelas, dan penugasan wali kelas.
+
+##### Tabel Ringkasan Operasi CRUD Kelas:
+| Operasi | Endpoint | Method | Role Access | Handler / Function |
+| :--- | :--- | :--- | :--- | :--- |
+| **Create (C)** | `/api/classes` | `POST` | `teacher` | `classesService.createClass(teacherId, body)` |
+| **Read (R)** | `/api/classes` & `/api/classes/:id` | `GET` | `teacher`, `student` | `classesService.getTeacherClasses() / getClassById()` |
+| **Update (U)** | `/api/classes/:id` | `PUT` | `teacher` (Owner) | `classesService.updateClass(teacherId, classId, body)` |
+| **Delete (D)** | `/api/classes/:id` | `DELETE` / Un-enroll | `teacher` / `admin` | `classesRepo.deleteClass(classId)` |
+
+##### Implementasi Kode Backend (`classes.routes.ts` & `classes.service.ts`):
 
 ```typescript
-app.group("/api", (app) =>
-  app
-    .use(authRoutes)
-    .use(classRoutes)
-    .use(groupRoutes)
-    .use(assignmentRoutes)
-    .use(submissionRoutes)
-    .use(quizRoutes)
-    .use(materialRoutes)
-    .use(gradingRoutes)
-);
+// 1. CREATE: Membuat Kelas Baru
+app.post("", async ({ user, body }) => ok(await classesService.createClass(user.id, body)), { body: createClassSchema });
+
+export const createClass = async (teacherId: string, body: CreateClassBody) => {
+  const newClass = await classesRepo.createClass({ ...body, homeroomTeacherId: teacherId });
+  await classesRepo.addTeachingAssignment(newClass.id, teacherId);
+  return newClass;
+};
+
+// 2. READ: Mengambil Daftar & Detail Kelas
+app.get("/my", async ({ user }) => ok(await classesService.getStudentClasses(user.id)));
+app.get("/:id", async ({ user, params }) => ok(await classesService.getClassById(user.id, params.id)));
+
+// 3. UPDATE: Memperbarui Informasi & Jadwal Kelas
+app.put("/:id", async ({ user, params, body }) => ok(await classesService.updateClass(user.id, params.id, body)), { body: updateClassSchema });
+
+export const updateClass = async (teacherId: string, classId: string, body: Partial<CreateClassBody>) => {
+  await assertTeacherOwnsClass(teacherId, classId);
+  return await classesRepo.updateClass(classId, body);
+};
 ```
 
-#### Ringkasan Rute dan Alur CRUD Utama:
+##### Tangkapan Layar Pengujian Operasi CRUD Kelas:
+* **Screenshot Create (POST `/api/classes`)**: *(Bukti pembuatan kelas "X RPL 1" via Postman / UI)*
+* **Screenshot Read (GET `/api/classes`)**: *(Bukti daftar kelas yang diampu guru)*
+* **Screenshot Update (PUT `/api/classes/:id`)**: *(Bukti perbaruan nama/jadwal kelas)*
+* **Screenshot Delete (DELETE `/api/classes/:id`)**: *(Bukti konfirmasi penghapusan kelas)*
 
-| Modul | Endpoint | Method | Fungsi CRUD & Deskripsi Alur |
-| :--- | :--- | :--- | :--- |
-| **Auth** | `/api/auth/login` | `POST` | Memeriksa username di `credentials`, memverifikasi hash Argon2id, menerbitkan JWT Token. |
-| **Auth** | `/api/auth/me` | `GET` | Menerjemahkan JWT token dari header authorization dan mengembalikan data profil pengguna. |
-| **Kelas** | `/api/classes` | `GET / POST` | Menampilkan seluruh kelas & membuat kelas baru beserta penunjukan wali kelas (`profiles`). |
-| **Kelompok**| `/api/groups` | `POST` | Membuat kelompok belajar baru pada suatu kelas dengan menetapkan `leader_id` dan `max_members`. |
-| **Materi** | `/api/materials` | `GET / POST` | Mengambil materi dari koleksi AstraDB `materials` berdasarkan `class_id` atau menambahkan materi baru. |
-| **Tugas** | `/api/assignments` | `GET / POST` | Mengelola data instruksi tugas dan batas waktu pengumpulan (*due date*) di koleksi AstraDB `assignments`. |
-| **Submission**|`/api/submissions`| `POST` | Siswa mengunggah tautan/berkas pengumpulan tugas ke koleksi AstraDB `submissions`. |
-| **Penilaian**| `/api/grading` | `POST` | Guru memberikan nilai angka dan catatan umpan balik ke koleksi AstraDB `grades`. |
+---
+
+#### 4.3.2 Operasi CRUD Entitas Materi Pembelajaran (`materials` - AstraDB NoSQL)
+
+Modul materi mengelola dokumen modul pembelajaran, konten rich-text, dan berkas lampiran yang tersimpan dalam AstraDB NoSQL collection `materials`.
+
+##### Tabel Ringkasan Operasi CRUD Materi:
+| Operasi | Endpoint | Method | Role Access | Handler / Function |
+| :--- | :--- | :--- | :--- | :--- |
+| **Create (C)** | `/api/materials` | `POST` | `teacher` | `materialsService.createMaterial(teacherId, body)` |
+| **Read (R)** | `/api/materials/class/:classId` | `GET` | `teacher`, `student` | `materialsService.getClassMaterials()` |
+| **Update (U)** | `/api/materials/:id` | `PUT` | `teacher` | `materialsService.updateMaterial(teacherId, id, body)` |
+| **Delete (D)** | `/api/materials/:id` | `DELETE` | `teacher` | `materialsService.deleteMaterial(teacherId, id)` |
+
+##### Implementasi Kode Backend (`materials.routes.ts` & `materials.service.ts`):
+
+```typescript
+// 1. CREATE: Membuat & Publikasi Modul Materi Baru (AstraDB NoSQL)
+app.post("", async ({ user, body }) => ok(await materialsService.createMaterial(user.id, body)), { body: createMaterialSchema });
+
+export const createMaterial = async (teacherId: string, body: CreateMaterialBody) => {
+  const doc = { ...body, teacher_id: teacherId, created_at: new Date().toISOString() };
+  return await execAstra(() => astraDb.collection("materials").insertOne(doc));
+};
+
+// 2. READ: Mengambil Detail & Daftar Materi per Kelas
+app.get("/class/:classId", async ({ user, params }) => ok(await materialsService.getClassMaterials(user.id, user.role, params.classId)));
+app.get("/:id", async ({ user, params }) => ok(await materialsService.getMaterialDetail(user.id, user.role, params.id)));
+
+// 3. UPDATE: Memperbarui Konten Modul Materi
+app.put("/:id", async ({ user, params, body }) => ok(await materialsService.updateMaterial(user.id, params.id, body)), { body: updateMaterialSchema });
+
+// 4. DELETE: Menghapus Dokumen Materi dari NoSQL Collection
+app.delete("/:id", async ({ user, params }) => ok(await materialsService.deleteMaterial(user.id, params.id)));
+
+export const deleteMaterial = async (teacherId: string, materialId: string) => {
+  return await execAstra(() => astraDb.collection("materials").deleteOne({ _id: materialId }));
+};
+```
+
+##### Tangkapan Layar Pengujian Operasi CRUD Materi:
+* **Screenshot Create (POST `/api/materials`)**: *(Bukti unggah materi modul di Postman/UI)*
+* **Screenshot Read (GET `/api/materials/:id`)**: *(Bukti pembacaan detail materi oleh siswa)*
+* **Screenshot Update (PUT `/api/materials/:id`)**: *(Bukti penyuntingan deskripsi/lampiran)*
+* **Screenshot Delete (DELETE `/api/materials/:id`)**: *(Bukti respons penghapusan materi AstraDB)*
+
+---
+
+#### 4.3.3 Operasi CRUD Entitas Kelompok Belajar (`groups` - PostgreSQL Relational DB)
+
+Modul kelompok mengelola pembentukan kelompok siswa dalam kelas, penentuan ketua (*leader*), dan batas maksimal anggota (`max_members`).
+
+##### Tabel Ringkasan Operasi CRUD Kelompok:
+| Operasi | Endpoint | Method | Role Access | Handler / Function |
+| :--- | :--- | :--- | :--- | :--- |
+| **Create (C)** | `/api/groups` | `POST` | `student`, `teacher` | `groupsService.createGroup(userId, body)` |
+| **Read (R)** | `/api/groups/class/:classId` | `GET` | `student`, `teacher` | `groupsService.getClassGroups(classId)` |
+| **Update (U)** | `/api/groups/:groupId` & `/groups/join` | `PATCH` / `POST` | `student` | `groupsService.updateGroup() / joinGroup()` |
+| **Delete (D)** | `/api/groups/leave` | `DELETE` / `POST` | `student` | `groupsService.leaveGroup(userId, body)` |
+
+##### Implementasi Kode Backend (`groups.routes.ts` & `groups.service.ts`):
+
+```typescript
+// 1. CREATE: Membuat Kelompok Belajar Baru
+app.post("", async ({ user, body }) => ok(await groupsService.createGroup(user.id, body)), { body: createGroupSchema });
+
+export const createGroup = async (studentId: string, body: CreateGroupBody) => {
+  const group = await groupsRepo.createGroup({ ...body, leaderId: studentId });
+  await groupsRepo.addMember(group.id, studentId, body.classId);
+  return group;
+};
+
+// 2. READ: Mengambil Daftar Kelompok per Kelas
+app.get("/class/:classId", async ({ params }) => ok(await groupsService.getClassGroups(params.classId)));
+
+// 3. UPDATE: Mengubah Nama Kelompok / Menambah Anggota (Join)
+app.patch("/:groupId", async ({ user, params, body }) => ok(await groupsService.updateGroup(user.id, params.groupId, body.name)));
+app.post("/join", async ({ user, body }) => ok(await groupsService.joinGroup(user.id, body)));
+
+// 4. DELETE: Keluar dari Kelompok / Menghapus Keanggotaan
+app.delete("/leave", async ({ user, body }) => ok(await groupsService.leaveGroup(user.id, body)));
+```
+
+##### Tangkapan Layar Pengujian Operasi CRUD Kelompok:
+* **Screenshot Create (POST `/api/groups`)**: *(Bukti pembuatan kelompok baru)*
+* **Screenshot Read (GET `/api/groups/class/:classId`)**: *(Bukti daftar kelompok kelas)*
+* **Screenshot Update (POST `/api/groups/join`)**: *(Bukti siswa berhasil bergabung ke kelompok)*
+* **Screenshot Delete (DELETE `/api/groups/leave`)**: *(Bukti anggota keluar dari kelompok)*
 
 ---
 

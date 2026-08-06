@@ -3,7 +3,7 @@ import { deleteFile, getSignedUrl, uploadFile } from "../../shared/storage/files
 import { BadRequest } from "../../shared/utils/errors";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".zip"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = Math.floor(2.5 * 1024 * 1024); // 2.5MB
 
 export const normalizeArray = <T>(input: T | T[] | undefined): T[] => {
   if (!input) return [];
@@ -47,7 +47,7 @@ export const validateFiles = (filesInput: File | File[] | undefined): File[] => 
   if (files.length > 5) throw BadRequest("Maksimal 5 file per pengumpulan");
 
   for (const file of files) {
-    if (file.size > MAX_FILE_SIZE) throw BadRequest(`Ukuran file '${file.name}' melebihi batas 10MB`);
+    if (file.size > MAX_FILE_SIZE) throw BadRequest(`Ukuran file '${file.name}' melebihi batas 2.5 MB`);
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) throw BadRequest(`Format file '${file.name}' tidak diizinkan`);
   }

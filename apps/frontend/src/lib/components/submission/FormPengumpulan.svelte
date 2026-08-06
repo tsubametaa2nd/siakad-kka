@@ -50,7 +50,72 @@
     'application/x-zip-compressed'
   ];
 
-  const validateAndAddFiles = (files: FileList | File[]) => {
+  const compressImageFile = async (file: File): Promise<File> => {
+    if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png)$/i)) {
+      return file;
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1920;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+          if (width > height) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          } else {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+            const compressedFile = new File([blob], compressedName, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile.size < file.size ? compressedFile : file);
+          },
+          'image/jpeg',
+          0.75
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+
+      img.src = url;
+    });
+  };
+
+  const validateAndAddFiles = async (files: FileList | File[]) => {
     error = '';
     const fileArray = Array.from(files);
 
@@ -60,13 +125,23 @@
     }
 
     const validNewFiles: File[] = [];
-    for (const f of fileArray) {
+    for (let f of fileArray) {
       if (!ALLOWED_TYPES.includes(f.type) && !f.name.endsWith('.zip') && !f.name.endsWith('.docx') && !f.name.endsWith('.pptx') && !f.name.endsWith('.xlsx')) {
         toastStore.add(`${f.name} — tipe tidak didukung`, 'danger');
         continue;
       }
-      if (f.size > 10 * 1024 * 1024) {
-        toastStore.add(`${f.name} — ukuran melebihi 10 MB`, 'danger');
+
+      const isImage = f.type.startsWith('image/') || f.name.match(/\.(jpg|jpeg|png)$/i);
+      if (isImage) {
+        try {
+          f = await compressImageFile(f);
+        } catch {
+          // ignore error, fallback to original
+        }
+      }
+
+      if (f.size > Math.floor(2.5 * 1024 * 1024)) {
+        toastStore.add(`${f.name} — ukuran melebihi 2.5 MB (Maksimal 2.5 MB per berkas)`, 'danger');
         continue;
       }
       validNewFiles.push(f);
@@ -189,7 +264,7 @@
       <FolderUp size={36} class="text-black" />
       <div class="font-display font-black text-sm uppercase">Seret & Lepas Berkas ke Sini (Opsional)</div>
       <div class="font-body text-xs text-gray-700">atau klik untuk memilih dari perangkat</div>
-      <div class="font-mono text-[11px] font-bold text-gray-600">PDF, DOCX, PPTX, XLSX, PNG, JPG, ZIP (Maks 10 MB per berkas, Maks 5 berkas)</div>
+      <div class="font-mono text-[11px] font-bold text-gray-600">PDF, DOCX, PPTX, XLSX, PNG, JPG, ZIP (Gambar dikompres otomatis, Berkas non-gambar Maks 2.5 MB, Maks 5 berkas)</div>
     </div>
 
     <DaftarBerkas files={selectedFiles} progress={uploadProgress} {uploading} disabled={uploading} onremove={handleRemoveFile} />

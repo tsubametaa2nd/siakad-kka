@@ -1,0 +1,712 @@
+{
+  "info": {
+    "_postman_id": "ngajar-api-collection-v1",
+    "name": "Ngajar (SIAKAD KKA) Backend API",
+    "description": "Koleksi lengkap request Postman untuk pengujian API Backend Ngajar (ElysiaJS + Bun).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "0. Health Check & Root",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Root Info",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": ["{{baseUrl}}"],
+              "path": ["api"]
+            }
+          }
+        },
+        {
+          "name": "OpenAPI / Swagger JSON",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/docs/json",
+              "host": ["{{baseUrl}}"],
+              "path": ["docs", "json"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication (Auth)",
+      "item": [
+        {
+          "name": "Login Siswa (Pakai NIS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token JWT Siswa berhasil disimpan ke variabel koleksi: ' + jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"2024001\",\n  \"password\": \"siswa123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Guru / Admin (Pakai NIP/Username)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    console.log('Token JWT Guru berhasil disimpan ke variabel koleksi: ' + jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"198001012005011001\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Create Student Account (Tambah Siswa Baru)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Budi Santoso\",\n  \"username\": \"2024005\",\n  \"role\": \"student\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/accounts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "accounts"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile Siswa",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Budi Santoso Perdana\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "students"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Classes (Manajemen Kelas)",
+      "item": [
+        {
+          "name": "Get All Classes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "classes"]
+            }
+          }
+        },
+        {
+          "name": "Create New Class",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('classId', jsonData.data.id);",
+                  "    console.log('ID Kelas berhasil dibuat dan disimpan: ' + jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"X RPL 1\",\n  \"gradeLevel\": \"10\",\n  \"academicYear\": \"2025/2026\",\n  \"room\": \"Lab Komputer 1\",\n  \"scheduleDay\": \"Senin\",\n  \"startTime\": \"07:30\",\n  \"endTime\": \"09:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/classes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "classes"]
+            }
+          }
+        },
+        {
+          "name": "Get Class Detail by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "classes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "CLASS_UUID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Groups (Kelompok Belajar)",
+      "item": [
+        {
+          "name": "Get Groups by Class ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups?classId=CLASS_UUID_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups"],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "CLASS_UUID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kelompok Web Dev 1\",\n  \"classId\": \"CLASS_UUID_HERE\",\n  \"maxMembers\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups"]
+            }
+          }
+        },
+        {
+          "name": "Join Group",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/:id/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", ":id", "join"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "GROUP_UUID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/:id/leave",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", ":id", "leave"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "GROUP_UUID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Materials (Materi Pembelajaran)",
+      "item": [
+        {
+          "name": "Get Materials by Class ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/materials?classId=CLASS_UUID_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "materials"],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "CLASS_UUID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"CLASS_UUID_HERE\",\n  \"title\": \"Modul 1: Pengenalan Svelte 5\",\n  \"content\": \"<p>Materi dasar tentang Svelte 5 Runes dan Reaktivitas.</p>\",\n  \"links\": [\"https://svelte.dev\"],\n  \"files\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/materials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "materials"]
+            }
+          }
+        },
+        {
+          "name": "Get Material Detail by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/materials/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "MATERIAL_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Assignments (Tugas)",
+      "item": [
+        {
+          "name": "Get Assignments by Class ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments?classId=CLASS_UUID_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "CLASS_UUID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"CLASS_UUID_HERE\",\n  \"title\": \"Tugas 1: Membuat Component Svelte\",\n  \"description\": \"Buatlah komponen form interaktif menggunakan $state rune.\",\n  \"type\": \"individual\",\n  \"deadline\": \"2026-12-31T23:59:59Z\",\n  \"maxScore\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"]
+            }
+          }
+        },
+        {
+          "name": "Get Assignment Detail by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ASSIGNMENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Assignment (Hapus Tugas)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/:id?force=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", ":id"],
+              "query": [
+                {
+                  "key": "force",
+                  "value": "true"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ASSIGNMENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Submissions (Pengumpulan Tugas)",
+      "item": [
+        {
+          "name": "Submit Assignment Solution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignmentId\": \"ASSIGNMENT_ID_HERE\",\n  \"contentUrl\": \"https://github.com/user/project-tugas\",\n  \"textSubmission\": \"Berikut adalah link repository tugas saya.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/submissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "submissions"]
+            }
+          }
+        },
+        {
+          "name": "Get Submissions by Assignment ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/submissions?assignmentId=ASSIGNMENT_ID_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "submissions"],
+              "query": [
+                {
+                  "key": "assignmentId",
+                  "value": "ASSIGNMENT_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Quizzes (Kuis Interaktif)",
+      "item": [
+        {
+          "name": "Get Quizzes by Class ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes?classId=CLASS_UUID_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quizzes"],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "CLASS_UUID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Quiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classId\": \"CLASS_UUID_HERE\",\n  \"title\": \"Kuis 1: Dasardan Framework Web\",\n  \"durationMinutes\": 15,\n  \"questions\": [\n    {\n      \"questionText\": \"Apa fungsi dari $state di Svelte 5?\",\n      \"options\": [\"Merubah CSS\", \"Mendefinisikan Reactive State\", \"Membuat Database\", \"Melakukan Routing\"],\n      \"correctOption\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quizzes"]
+            }
+          }
+        },
+        {
+          "name": "Submit Quiz Attempt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [1]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/:id/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quizzes", ":id", "submit"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "QUIZ_ID_HERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/:id/leaderboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "quizzes", ":id", "leaderboard"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "QUIZ_ID_HERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Grading (Penilaian)",
+      "item": [
+        {
+          "name": "Grade Submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submissionId\": \"SUBMISSION_ID_HERE\",\n  \"gradeValue\": 95,\n  \"feedback\": \"Sangat baik dan lengkap!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/grading",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "grading"]
+            }
+          }
+        },
+        {
+          "name": "Get Student Grade Rekap",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/grading/student",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "grading", "student"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
