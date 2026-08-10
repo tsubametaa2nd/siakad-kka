@@ -52,6 +52,8 @@
   };
 
   let selectedMaterialTitle = $state('');
+  let currentPage = $state(1);
+  const itemsPerPage = 20;
 
   const classOptions = $derived([
     { value: 'all', label: 'Semua Kelas' },
@@ -72,9 +74,16 @@
       : materials
   );
 
+  const paginatedMaterials = $derived(
+    filteredMaterials.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  );
+
+  const totalPages = $derived(Math.ceil(filteredMaterials.length / itemsPerPage));
+
   const handleClassChange = (newVal: string) => {
     selectedClassId = newVal;
     selectedMaterialTitle = '';
+    currentPage = 1;
     loadMaterials(newVal);
   };
 </script>
@@ -96,6 +105,7 @@
         options={materialFilterOptions}
         bind:value={selectedMaterialTitle}
         disabled={loadingMaterials || materials.length === 0}
+        onchange={() => currentPage = 1}
       />
     </div>
   </div>
@@ -117,7 +127,7 @@
     </EmptyState>
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {#each filteredMaterials as material, i (material.id || i)}
+      {#each paginatedMaterials as material, i (material.id || i)}
         <div class="border-[3px] border-black bg-surface text-black p-5 shadow-brutal flex flex-col justify-between gap-4">
           <div>
             <div class="font-body text-xs font-bold text-gray-700 mb-2">{material.class_name || '—'}</div>
@@ -138,5 +148,19 @@
         </div>
       {/each}
     </div>
+
+    {#if totalPages > 1}
+      <div class="flex justify-between items-center mt-8 border-[3px] border-black p-4 bg-white shadow-brutal">
+        <Button variant="surface" disabled={currentPage === 1} onclick={() => currentPage--}>
+          &laquo; Sebelumnya
+        </Button>
+        <div class="font-mono font-bold text-sm">
+          Halaman {currentPage} dari {totalPages}
+        </div>
+        <Button variant="surface" disabled={currentPage === totalPages} onclick={() => currentPage++}>
+          Selanjutnya &raquo;
+        </Button>
+      </div>
+    {/if}
   {/if}
 </AppShell>

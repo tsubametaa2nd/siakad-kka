@@ -16,6 +16,8 @@
   let teacherClasses = $state<ClassItem[]>([]);
   let selectedClassId = $state('');
   let selectedMaterialTitle = $state('');
+  let currentPage = $state(1);
+  const itemsPerPage = 20;
   let loadingMaterials = $state(true);
   let loadingClasses = $state(true);
   let error = $state('');
@@ -47,6 +49,12 @@
       : materials
   );
 
+  const paginatedMaterials = $derived(
+    filteredMaterials.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  );
+
+  const totalPages = $derived(Math.ceil(filteredMaterials.length / itemsPerPage));
+
   $effect(() => {
     loadClasses();
   });
@@ -66,6 +74,7 @@
   const loadMaterials = async (classId: string) => {
     loadingMaterials = true;
     selectedMaterialTitle = '';
+    currentPage = 1;
     error = '';
     try {
       materials = await getTeacherMaterialsApi(classId || undefined);
@@ -114,6 +123,7 @@
           options={materialFilterOptions}
           bind:value={selectedMaterialTitle}
           disabled={loadingMaterials || materials.length === 0}
+          onchange={() => currentPage = 1}
         />
       </div>
     </div>
@@ -143,7 +153,7 @@
     </EmptyState>
   {:else}
     <div class="flex flex-col gap-4">
-      {#each filteredMaterials as material, i (material.id || i)}
+      {#each paginatedMaterials as material, i (material.id || i)}
         <div class="border-[3px] border-black bg-white p-4 shadow-brutal flex items-center justify-between gap-4">
           <div class="flex flex-col gap-1">
             <h3 class="font-display font-black text-lg md:text-xl uppercase tracking-wide text-black">{material.title}</h3>
@@ -161,6 +171,20 @@
         </div>
       {/each}
     </div>
+
+    {#if totalPages > 1}
+      <div class="flex justify-between items-center mt-8 border-[3px] border-black p-4 bg-white shadow-brutal">
+        <Button variant="surface" disabled={currentPage === 1} onclick={() => currentPage--}>
+          &laquo; Sebelumnya
+        </Button>
+        <div class="font-mono font-bold text-sm">
+          Halaman {currentPage} dari {totalPages}
+        </div>
+        <Button variant="surface" disabled={currentPage === totalPages} onclick={() => currentPage++}>
+          Selanjutnya &raquo;
+        </Button>
+      </div>
+    {/if}
   {/if}
 </AppShell>
 

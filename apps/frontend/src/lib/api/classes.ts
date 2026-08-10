@@ -112,7 +112,12 @@ export const getStudentClassesApi = async (): Promise<ClassItem[]> => {
 };
 
 export const createStudentAccountApi = async (payload: { name: string; identifier: string; password: string }): Promise<StudentProfile> => {
-  return api.post<StudentProfile>('/auth/accounts', { ...payload, role: 'student' });
+  return api.post<StudentProfile>('/auth/accounts', { 
+    fullName: payload.name, 
+    username: payload.identifier,
+    password: payload.password,
+    role: 'student' 
+  });
 };
 
 export const getExistingStudentsApi = async (): Promise<StudentProfile[]> => {
