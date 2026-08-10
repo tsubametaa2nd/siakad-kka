@@ -178,6 +178,12 @@ export const upsertEnrollments = async (classId: string, studentIds: string[]) =
     .onConflictDoNothing({ target: [schema.enrollments.studentId, schema.enrollments.classId] });
 };
 
+export const removeEnrollment = async (classId: string, studentId: string) => {
+  await db
+    .delete(schema.enrollments)
+    .where(and(eq(schema.enrollments.classId, classId), eq(schema.enrollments.studentId, studentId)));
+};
+
 export const findClassStudents = async (classId: string) => {
   const rows = await db
     .select({

@@ -143,10 +143,14 @@ export const findProfileById = async (id: string) => {
   return data || null;
 };
 
-export const updateProfileName = async (id: string, fullName: string) => {
+export const updateProfile = async (id: string, fullName?: string, identifier?: string) => {
+  const patch: any = {};
+  if (fullName !== undefined) patch.fullName = fullName;
+  if (identifier !== undefined) patch.identifier = identifier;
+  
   const [data] = await db
     .update(schema.profiles)
-    .set({ fullName })
+    .set(patch)
     .where(eq(schema.profiles.id, id))
     .returning({
       id: schema.profiles.id,
@@ -156,6 +160,13 @@ export const updateProfileName = async (id: string, fullName: string) => {
     });
 
   return data;
+};
+
+export const updateCredentialUsername = async (profileId: string, username: string) => {
+  await db
+    .update(schema.credentials)
+    .set({ username })
+    .where(eq(schema.credentials.profileId, profileId));
 };
 
 export const findAllStudents = async () => {

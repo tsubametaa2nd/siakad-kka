@@ -93,6 +93,14 @@ export const enrollStudentsApi = async (classId: string, studentIds: string[]): 
   return api.post(`/classes/${classId}/enroll`, { studentIds });
 };
 
+export const unenrollStudentApi = async (classId: string, studentId: string): Promise<{ success: boolean }> => {
+  return api.delete(`/classes/${classId}/students/${studentId}`);
+};
+
+export const updateStudentAccountApi = async (studentId: string, payload: { name?: string; identifier?: string; password?: string }): Promise<any> => {
+  return api.put(`/auth/students/${studentId}`, payload);
+};
+
 export const getStudentClassesApi = async (): Promise<ClassItem[]> => {
   try {
     const res = await api.get<any[]>('/classes/my');

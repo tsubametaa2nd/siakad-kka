@@ -60,11 +60,38 @@ export const getProfile = async (userId: string) => {
 };
 
 export const updateProfile = async (userId: string, fullName: string) => {
-  const profile = await authRepo.updateProfileName(userId, fullName);
+  const profile = await authRepo.updateProfile(userId, fullName);
   if (!profile) {
     throw NotFound("Profil tidak ditemukan");
   }
   return { id: profile.id, name: profile.full_name, role: profile.role as Role, identifier: profile.identifier };
+};
+
+export const updateStudentAccount = async (studentId: string, body: { name?: string, identifier?: string, password?: string }) => {
+  const profile = await authRepo.findProfileById(studentId);
+  if (!profile || profile.role !== "student") {
+    throw NotFound("Siswa tidak ditemukan");
+  }
+
+  if (body.identifier && body.identifier !== profile.identifier) {
+    const existingProfile = await authRepo.findProfileByIdentifier(body.identifier);
+    if (existingProfile) {
+      throw Conflict("NIS sudah terdaftar oleh siswa lain", "IDENTIFIER_CONFLICT");
+    }
+  }
+
+  const updatedProfile = await authRepo.updateProfile(studentId, body.name, body.identifier);
+  
+  if (body.identifier && body.identifier !== profile.identifier) {
+    await authRepo.updateCredentialUsername(studentId, body.identifier);
+  }
+
+  if (body.password) {
+    const newHash = await hashPassword(body.password);
+    await authRepo.updatePasswordHash(studentId, newHash);
+  }
+
+  return { id: updatedProfile.id, name: updatedProfile.full_name, identifier: updatedProfile.identifier };
 };
 
 export const getAllStudents = async () => {

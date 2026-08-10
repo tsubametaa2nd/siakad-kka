@@ -17,6 +17,7 @@ export const classRoutes = new Elysia({ prefix: "/classes" })
       .get("", async ({ user }) => ok(await classesService.getTeacherClasses(user.id)))
       .put("/:id", async ({ user, params, body }) => ok(await classesService.updateClass(user.id, params.id, body)), { body: updateClassSchema })
       .post("/:id/enroll", async ({ user, params, body }) => ok(await classesService.enrollStudents(user.id, params.id, body.studentIds)), { body: enrollSchema })
+      .delete("/:id/students/:studentId", async ({ user, params }) => ok(await classesService.unenrollStudent(user.id, params.id, params.studentId)))
       .post("/:id/import-spreadsheet", async ({ user, params, body }) => ok(await classesService.importFromSpreadsheet(user.id, params.id, body.spreadsheetUrl)), { body: importSpreadsheetSchema })
       .post("/:id/assign-teacher", async ({ user, params, body }) => ok(await classesService.assignTeacherToClass(user.id, params.id, body.teacherId)), { body: assignTeacherSchema })
   );

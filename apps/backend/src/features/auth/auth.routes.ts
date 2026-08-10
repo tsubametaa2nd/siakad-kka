@@ -3,7 +3,7 @@ import { Elysia } from "elysia";
 import { authGuard, requireRole } from "../../shared/middleware/auth";
 import { ok } from "../../shared/utils/response";
 import * as authService from "./auth.service";
-import { createAccountSchema, loginSchema, updateProfileSchema, changePasswordSchema } from "./auth.schema";
+import { createAccountSchema, loginSchema, updateProfileSchema, changePasswordSchema, updateStudentAccountSchema } from "./auth.schema";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
   .get("/login", () => ok({ message: "Auth login endpoint operational. Send POST request with credentials to login.", status: "online" }))
@@ -38,5 +38,9 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         "/students",
         async () => ok(await authService.getAllStudents())
       )
+      .put(
+        "/students/:id",
+        async ({ params, body }) => ok(await authService.updateStudentAccount(params.id, body as any)),
+        { body: updateStudentAccountSchema }
+      )
   );
-

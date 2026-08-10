@@ -23,7 +23,14 @@ export const changePasswordSchema = t.Object({
   newPassword: t.String({ minLength: 6 }),
 });
 
+export const updateStudentAccountSchema = t.Object({
+  name: t.Optional(t.String({ minLength: 1 })),
+  identifier: t.Optional(t.String({ minLength: 1 })),
+  password: t.Optional(t.String({ minLength: 6 })),
+});
+
 export type LoginBody = typeof loginSchema.static;
 export type CreateAccountBody = typeof createAccountSchema.static;
 export type UpdateProfileBody = typeof updateProfileSchema.static;
 export type ChangePasswordBody = typeof changePasswordSchema.static;
+export type UpdateStudentAccountBody = typeof updateStudentAccountSchema.static;

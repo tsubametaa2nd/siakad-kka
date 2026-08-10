@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Users, Settings, Search } from 'lucide-svelte';
-  import { getClassByIdApi, getClassStudentsApi, updateClassApi, type ClassItem, type StudentProfile } from '../../lib/api/classes';
+  import { getClassByIdApi, getClassStudentsApi, updateClassApi, unenrollStudentApi, type ClassItem, type StudentProfile } from '../../lib/api/classes';
   import { getGroupsByClassApi, type GroupItem } from '../../lib/api/groups';
   import AppShell from '../../lib/components/layout/AppShell.svelte';
   import GroupCard from '../../lib/components/kelompok/GroupCard.svelte';
   import TambahSiswaModal from '../../lib/components/kelas/TambahSiswaModal.svelte';
+  import EditSiswaModal from '../../lib/components/kelas/EditSiswaModal.svelte';
   import Alert from '../../lib/components/ui/Alert.svelte';
   import Badge from '../../lib/components/ui/Badge.svelte';
   import Button from '../../lib/components/ui/Button.svelte';
@@ -37,6 +38,8 @@
   let error = $state('');
 
   let showAddStudentModal = $state(false);
+  let showEditSiswaModal = $state(false);
+  let selectedStudentForEdit = $state<StudentProfile | null>(null);
 
   let editName = $state('');
   let editLevel = $state('');
@@ -134,6 +137,18 @@
     }
   };
 
+  const handleUnenroll = async (studentId: string, studentName: string) => {
+    if (confirm(`Apakah Anda yakin ingin mengeluarkan ${studentName} dari kelas ini?`)) {
+      try {
+        await unenrollStudentApi(classId, studentId);
+        toastStore.add(`${studentName} berhasil dikeluarkan dari kelas`, 'success');
+        await loadStudents();
+      } catch (err: any) {
+        toastStore.add(err.message || 'Gagal mengeluarkan siswa', 'danger');
+      }
+    }
+  };
+
   const handleSaveSettings = async (e: Event) => {
     e.preventDefault();
     submittingSettings = true;
@@ -214,13 +229,20 @@
           {:else if filteredStudents.length === 0}
             <EmptyState icon={Search} title="Tidak Ditemukan" description={`Tidak ada siswa cocok dengan kata kunci "${searchQuery}".`} />
           {:else}
-            <Table headers={["No", "NIS", "Nama Siswa", "Tanggal Terdaftar"]}>
+            <Table headers={["No", "NIS", "Nama Siswa", "Tanggal Terdaftar", "Aksi"]}>
               {#each filteredStudents as student, idx (student.id)}
                 <tr>
                   <td class="p-3.5 border-r-2 border-black font-mono font-bold">{idx + 1}</td>
                   <td class="p-3.5 border-r-2 border-black font-mono font-bold">{student.identifier}</td>
                   <td class="p-3.5 border-r-2 border-black font-bold">{student.name}</td>
                   <td class="p-3.5 border-r-2 border-black font-mono text-xs">{student.enrolledAt ? new Date(student.enrolledAt).toLocaleDateString('id-ID') : '-'}</td>
+                  <td class="p-3.5 flex items-center gap-2">
+                    <Button variant="surface" size="sm" onclick={() => {
+                      selectedStudentForEdit = student;
+                      showEditSiswaModal = true;
+                    }}>Edit</Button>
+                    <Button variant="accent" size="sm" onclick={() => handleUnenroll(student.id, student.name)}>Keluarkan</Button>
+                  </td>
                 </tr>
               {/each}
             </Table>
@@ -288,5 +310,11 @@
   bind:open={showAddStudentModal}
   {classId}
   existingEnrolledStudentIds={enrolledStudentIds}
+  onSuccess={loadStudents}
+/>
+
+<EditSiswaModal
+  bind:open={showEditSiswaModal}
+  student={selectedStudentForEdit}
   onSuccess={loadStudents}
 />

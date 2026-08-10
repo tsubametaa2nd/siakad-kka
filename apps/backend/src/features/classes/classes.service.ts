@@ -91,6 +91,12 @@ export const enrollStudents = async (teacherId: string, classId: string, student
   return { enrolled: uniqueIds.length };
 };
 
+export const unenrollStudent = async (teacherId: string, classId: string, studentId: string) => {
+  await assertTeacherOwnsClass(teacherId, classId);
+  await classesRepo.removeEnrollment(classId, studentId);
+  return { success: true };
+};
+
 export const getStudentClasses = async (studentId: string) => {
   return await classesRepo.findClassesByStudent(studentId);
 };

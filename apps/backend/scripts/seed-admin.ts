@@ -3,7 +3,7 @@ import { supabase } from "../src/config/supabase";
 import { hashPassword } from "../src/shared/auth/password";
 
 const fullName = process.argv[2] || "Guru Admin";
-const nip = process.argv[3] || "198001012005011001";
+const nip = process.argv[3] || "087782784858";
 const password = process.argv[4] || "admin123";
 
 const seedAdmin = async () => {
