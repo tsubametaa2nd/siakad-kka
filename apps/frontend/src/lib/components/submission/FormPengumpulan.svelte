@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { FolderUp } from 'lucide-svelte';
+  import { FolderUp, Loader } from 'lucide-svelte';
   import { submitAssignmentApi, updateSubmissionApi, type SubmissionItem } from '../../api/submissions';
   import { toastStore } from '../../stores/toast.svelte';
+  import { compressDocumentFile, isCompressibleDocument } from '../../utils/docs';
   import Button from '../ui/Button.svelte';
   import Card from '../ui/Card.svelte';
   import Textarea from '../ui/Textarea.svelte';
@@ -26,6 +27,8 @@
   let uploading = $state(false);
   let uploadProgress = $state(0);
   let error = $state('');
+  let compressing = $state(false);
+  let compressingFileName = $state('');
   let showConfirm = $state(false);
 
   $effect(() => {
@@ -140,6 +143,28 @@
         }
       }
 
+      // Kompresi otomatis untuk dokumen (PDF, DOCX, PPTX) yang > 1MB
+      if (isCompressibleDocument(f) && f.size > 1 * 1024 * 1024) {
+        try {
+          compressing = true;
+          compressingFileName = f.name;
+          const result = await compressDocumentFile(f);
+          f = result.file;
+
+          if (result.compressed) {
+            toastStore.add(`✅ "${f.name}" berhasil dikompres ke ${(f.size / (1024 * 1024)).toFixed(2)} MB`, 'success');
+          }
+          if (result.message) {
+            toastStore.add(result.message, result.compressed ? 'warning' : 'danger');
+          }
+        } catch {
+          // Gagal kompres, lanjutkan dengan file asli
+        } finally {
+          compressing = false;
+          compressingFileName = '';
+        }
+      }
+
       if (f.size > Math.floor(2.5 * 1024 * 1024)) {
         toastStore.add(`${f.name} — ukuran melebihi 2.5 MB (Maksimal 2.5 MB per berkas)`, 'danger');
         continue;
@@ -251,20 +276,27 @@
     />
 
     <div
-      class="border-[3px] border-dashed border-black p-6 text-center cursor-pointer transition-colors duration-100 flex flex-col items-center justify-center gap-2 select-none {isDragOver ? 'bg-primary' : 'bg-white hover:bg-yellow-50'}"
+      class="border-[3px] border-dashed border-black p-6 text-center cursor-pointer transition-colors duration-100 flex flex-col items-center justify-center gap-2 select-none {compressing ? 'bg-blue-50 pointer-events-none' : isDragOver ? 'bg-primary' : 'bg-white hover:bg-yellow-50'}"
       ondragover={(e) => { e.preventDefault(); isDragOver = true; }}
       ondragleave={() => (isDragOver = false)}
       ondrop={handleDrop}
-      onclick={() => document.getElementById('file-drop-input')?.click()}
+      onclick={() => !compressing && document.getElementById('file-drop-input')?.click()}
       role="button"
       tabindex="0"
-      onkeydown={(e) => e.key === 'Enter' && document.getElementById('file-drop-input')?.click()}
+      onkeydown={(e) => e.key === 'Enter' && !compressing && document.getElementById('file-drop-input')?.click()}
     >
-      <input id="file-drop-input" type="file" multiple onchange={handleFileInputChange} class="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" />
-      <FolderUp size={36} class="text-black" />
-      <div class="font-display font-black text-sm uppercase">Seret & Lepas Berkas ke Sini (Opsional)</div>
-      <div class="font-body text-xs text-gray-700">atau klik untuk memilih dari perangkat</div>
-      <div class="font-mono text-[11px] font-bold text-gray-600">PDF, DOCX, PPTX, XLSX, PNG, JPG, ZIP (Gambar dikompres otomatis, Berkas non-gambar Maks 2.5 MB, Maks 5 berkas)</div>
+      <input id="file-drop-input" type="file" multiple onchange={handleFileInputChange} class="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" disabled={compressing} />
+      {#if compressing}
+        <Loader size={36} class="text-blue-600 animate-spin" />
+        <div class="font-display font-black text-sm uppercase text-blue-800">Mengompres Dokumen...</div>
+        <div class="font-body text-xs text-blue-700 font-bold">{compressingFileName}</div>
+        <div class="font-mono text-[11px] font-bold text-blue-600">File PDF/DOCX/PPTX sedang dikompres otomatis ke maks 1 MB, mohon tunggu...</div>
+      {:else}
+        <FolderUp size={36} class="text-black" />
+        <div class="font-display font-black text-sm uppercase">Seret & Lepas Berkas ke Sini (Opsional)</div>
+        <div class="font-body text-xs text-gray-700">atau klik untuk memilih dari perangkat</div>
+        <div class="font-mono text-[11px] font-bold text-gray-600">PDF, DOCX, PPTX, XLSX, PNG, JPG, ZIP — Dokumen & gambar dikompres otomatis (Maks 2.5 MB, Maks 5 berkas)</div>
+      {/if}
     </div>
 
     <DaftarBerkas files={selectedFiles} progress={uploadProgress} {uploading} disabled={uploading} onremove={handleRemoveFile} />
