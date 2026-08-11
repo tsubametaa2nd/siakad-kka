@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Pin } from 'lucide-svelte';
-  import { createAssignmentApi, updateAssignmentApi, type AssignmentItem } from '../../api/assignments';
+  import { Pin, Paperclip, Trash2, Upload, FileText } from 'lucide-svelte';
+  import { createAssignmentApi, updateAssignmentApi, type AssignmentItem, type AssignmentAttachment } from '../../api/assignments';
   import { getTeacherClassesApi, type ClassItem } from '../../api/classes';
   import { toastStore } from '../../stores/toast.svelte';
   import Button from '../ui/Button.svelte';
@@ -9,6 +9,7 @@
   import Select from '../ui/Select.svelte';
   import Textarea from '../ui/Textarea.svelte';
   import { localToUtcIso, utcIsoToLocalDatetime } from '../../utils/date';
+  import { formatFileSize } from '../../utils/format';
 
   interface Props {
     open?: boolean;
@@ -29,6 +30,11 @@
   let classes = $state<ClassItem[]>([]);
   let loadingClasses = $state(false);
   let submitting = $state(false);
+  let uploadProgress = $state(0);
+
+  let selectedFiles = $state<File[]>([]);
+  let existingAttachments = $state<AssignmentAttachment[]>([]);
+  let fileInputRef = $state<HTMLInputElement | null>(null);
 
   const isEditMode = $derived(!!assignmentToEdit);
 
@@ -49,6 +55,8 @@
   $effect(() => {
     if (open) {
       loadClasses();
+      selectedFiles = [];
+      uploadProgress = 0;
       if (assignmentToEdit) {
         title = assignmentToEdit.title;
         description = assignmentToEdit.description;
@@ -57,6 +65,7 @@
         groupSubmissionMode = assignmentToEdit.group_submission_mode || 'representative';
         dueDateLocal = utcIsoToLocalDatetime(assignmentToEdit.due_date);
         maxScore = assignmentToEdit.max_score || 100;
+        existingAttachments = assignmentToEdit.attachments ? [...assignmentToEdit.attachments] : [];
       } else {
         title = '';
         description = '';
@@ -64,6 +73,7 @@
         maxScore = 100;
         groupSubmissionMode = 'representative';
         type = 'individual';
+        existingAttachments = [];
       }
     }
   });
@@ -82,6 +92,42 @@
     }
   };
 
+  const handleFileSelect = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (!target.files) return;
+    const newFiles = Array.from(target.files);
+
+    const totalCount = existingAttachments.length + selectedFiles.length + newFiles.length;
+    if (totalCount > 5) {
+      toastStore.add('Maksimal 5 berkas lampiran per tugas', 'danger');
+      return;
+    }
+
+    const allowedExts = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.webp', '.zip', '.txt'];
+    for (const f of newFiles) {
+      if (f.size > 10 * 1024 * 1024) {
+        toastStore.add(`Ukuran berkas "${f.name}" melebihi batas 10 MB`, 'danger');
+        return;
+      }
+      const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+      if (!allowedExts.includes(ext)) {
+        toastStore.add(`Format berkas "${f.name}" tidak diizinkan. Gunakan PDF/Word/Dokumen.`, 'danger');
+        return;
+      }
+    }
+
+    selectedFiles = [...selectedFiles, ...newFiles];
+    if (target) target.value = '';
+  };
+
+  const removeSelectedFile = (index: number) => {
+    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+  };
+
+  const removeExistingAttachment = (index: number) => {
+    existingAttachments = existingAttachments.filter((_, i) => i !== index);
+  };
+
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     if (!title || !description || !classId || !dueDateLocal || submitting) return;
@@ -93,30 +139,41 @@
     }
 
     submitting = true;
+    uploadProgress = 0;
     try {
       const utcDueDate = localToUtcIso(dueDateLocal);
       let result: AssignmentItem;
 
       if (isEditMode && assignmentToEdit) {
-        result = await updateAssignmentApi(assignmentToEdit.id, {
-          title,
-          description,
-          type,
-          group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
-          due_date: utcDueDate,
-          max_score: Number(maxScore) || 100,
-        });
+        result = await updateAssignmentApi(
+          assignmentToEdit.id,
+          {
+            title,
+            description,
+            type,
+            group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
+            due_date: utcDueDate,
+            max_score: Number(maxScore) || 100,
+            existing_attachments: existingAttachments,
+            files: selectedFiles.length > 0 ? selectedFiles : undefined,
+          },
+          (percent) => (uploadProgress = percent)
+        );
         toastStore.add(`Tugas "${title}" berhasil diperbarui`, 'success');
       } else {
-        result = await createAssignmentApi({
-          class_id: classId,
-          title,
-          description,
-          type,
-          group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
-          due_date: utcDueDate,
-          max_score: Number(maxScore) || 100,
-        });
+        result = await createAssignmentApi(
+          {
+            class_id: classId,
+            title,
+            description,
+            type,
+            group_submission_mode: type === 'group' ? groupSubmissionMode : undefined,
+            due_date: utcDueDate,
+            max_score: Number(maxScore) || 100,
+            files: selectedFiles.length > 0 ? selectedFiles : undefined,
+          },
+          (percent) => (uploadProgress = percent)
+        );
         toastStore.add(`Tugas "${title}" berhasil dibuat`, 'success');
       }
 
@@ -126,6 +183,7 @@
       toastStore.add(err.message || (isEditMode ? 'Gagal mengedit tugas' : 'Gagal membuat tugas baru'), 'danger');
     } finally {
       submitting = false;
+      uploadProgress = 0;
     }
   };
 </script>
@@ -135,6 +193,96 @@
     <Input label="Judul Tugas" required={true} bind:value={title} placeholder="Contoh: Modul 1 Web Design" />
 
     <Textarea label="Deskripsi & Petunjuk Tugas" required={true} bind:value={description} rows={3} placeholder="Tuliskan petunjuk pengerjaan tugas..." />
+
+    <!-- Unggah File Lampiran Guru (PDF / Word) -->
+    <div class="border-2 border-black p-3.5 bg-yellow-50 flex flex-col gap-2.5">
+      <div class="flex items-center justify-between">
+        <label for="assignment-files-input" class="font-display font-black text-xs uppercase tracking-wide text-black flex items-center gap-1.5 cursor-pointer">
+          <Paperclip size={15} />
+          <span>Lampiran Berkas (PDF / Word / Dokumentasi)</span>
+        </label>
+        <span class="font-mono text-xs text-gray-600 font-bold">
+          {existingAttachments.length + selectedFiles.length}/5 File
+        </span>
+      </div>
+
+      <p class="font-body text-xs text-gray-700 font-medium">
+        Unggah berkas soal atau panduan tugas berupa <strong>PDF</strong> atau <strong>Word (.doc / .docx)</strong> yang dapat dilihat dan diunduh oleh siswa.
+      </p>
+
+      <input
+        id="assignment-files-input"
+        type="file"
+        multiple
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.png,.jpg,.jpeg,.webp,.txt"
+        class="hidden"
+        bind:this={fileInputRef}
+        onchange={handleFileSelect}
+      />
+
+      <div class="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="surface"
+          size="sm"
+          onclick={() => fileInputRef?.click()}
+          disabled={existingAttachments.length + selectedFiles.length >= 5}
+        >
+          <Upload size={14} />
+          <span>+ Pilih File PDF/Word</span>
+        </Button>
+      </div>
+
+      <!-- List Lampiran Lama (Mode Edit) -->
+      {#if existingAttachments.length > 0}
+        <div class="flex flex-col gap-1.5 pt-1">
+          <span class="font-mono text-xs font-bold text-gray-800 uppercase">File Terpasang:</span>
+          {#each existingAttachments as file, idx}
+            <div class="flex items-center justify-between p-2 bg-white border-2 border-black font-mono text-xs">
+              <div class="flex items-center gap-2 truncate">
+                <FileText size={14} class="shrink-0 text-blue-600" />
+                <span class="truncate font-bold">{file.name}</span>
+                {#if file.size}
+                  <span class="text-gray-500 text-[11px]">({formatFileSize(file.size)})</span>
+                {/if}
+              </div>
+              <button
+                type="button"
+                onclick={() => removeExistingAttachment(idx)}
+                class="text-red-600 hover:text-red-800 p-1 cursor-pointer"
+                title="Hapus lampiran ini"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      <!-- List Lampiran Baru Ditambahkan -->
+      {#if selectedFiles.length > 0}
+        <div class="flex flex-col gap-1.5 pt-1">
+          <span class="font-mono text-xs font-bold text-green-800 uppercase">File Baru Ditambahkan:</span>
+          {#each selectedFiles as file, idx}
+            <div class="flex items-center justify-between p-2 bg-green-50 border-2 border-black font-mono text-xs">
+              <div class="flex items-center gap-2 truncate">
+                <FileText size={14} class="shrink-0 text-green-700" />
+                <span class="truncate font-bold">{file.name}</span>
+                <span class="text-gray-600 text-[11px]">({formatFileSize(file.size)})</span>
+              </div>
+              <button
+                type="button"
+                onclick={() => removeSelectedFile(idx)}
+                class="text-red-600 hover:text-red-800 p-1 cursor-pointer"
+                title="Batal unggah file ini"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Select label="Pilih Kelas" options={classOptions} bind:value={classId} disabled={loadingClasses || isEditMode} />
@@ -177,6 +325,12 @@
       />
     </div>
 
+    {#if submitting && uploadProgress > 0 && uploadProgress < 100}
+      <div class="w-full bg-gray-200 border-2 border-black h-4 overflow-hidden">
+        <div class="bg-primary h-full transition-all duration-150" style="width: {uploadProgress}%"></div>
+      </div>
+    {/if}
+
     <div class="flex items-center justify-end gap-3 pt-4 border-t-2 border-black bg-base mt-2 shrink-0">
       <Button type="button" variant="surface" onclick={() => (open = false)}>Batal</Button>
       <Button type="submit" variant="primary" loading={submitting} disabled={!title || !description || !classId || !dueDateLocal}>
@@ -185,3 +339,4 @@
     </div>
   </form>
 </Modal>
+

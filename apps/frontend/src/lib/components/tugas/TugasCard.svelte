@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Clock, ArrowRight } from 'lucide-svelte';
+  import { Clock, ArrowRight, Paperclip } from 'lucide-svelte';
   import Badge from '../ui/Badge.svelte';
   import Button from '../ui/Button.svelte';
   import { formatFullDateTimeWIB, formatTimeRemaining, isDeadlineUrgent } from '../../utils/date';
@@ -54,6 +54,14 @@
       {/if}
       {#if item.group_name}
         <Badge tone="warning">Kelompok: {item.group_name}</Badge>
+      {/if}
+      {#if item.attachments && item.attachments.length > 0}
+        <Badge tone="neutral">
+          <span class="flex items-center gap-1">
+            <Paperclip size={12} />
+            <span>{item.attachments.length} Berkas</span>
+          </span>
+        </Badge>
       {/if}
     </div>
 

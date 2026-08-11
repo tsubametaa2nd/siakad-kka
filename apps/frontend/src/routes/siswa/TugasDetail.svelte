@@ -10,6 +10,7 @@
   import Card from '../../lib/components/ui/Card.svelte';
   import Skeleton from '../../lib/components/ui/Skeleton.svelte';
   import { formatFullDateTimeWIB, formatTimeRemaining } from '../../lib/utils/date';
+  import LampiranTugas from '../../lib/components/tugas/LampiranTugas.svelte';
 
   interface Props {
     params?: { id?: string };
@@ -92,9 +93,15 @@
           {assignment.title}
         </h2>
 
-        <div class="font-body text-sm text-gray-800 whitespace-pre-line mb-6 bg-white p-4 border-2 border-black">
+        <div class="font-body text-sm text-gray-800 whitespace-pre-line mb-4 bg-white p-4 border-2 border-black">
           {assignment.description}
         </div>
+
+        {#if assignment.attachments && assignment.attachments.length > 0}
+          <div class="mb-6">
+            <LampiranTugas attachments={assignment.attachments} />
+          </div>
+        {/if}
 
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 font-mono text-xs font-bold pt-2 border-t-2 border-black">
           <div>Tenggat Pengumpulan: <span class="underline">{formatFullDateTimeWIB(assignment.due_date)}</span></div>

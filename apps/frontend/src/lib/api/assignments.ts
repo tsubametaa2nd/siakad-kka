@@ -1,5 +1,14 @@
 import { api } from './client';
 
+export interface AssignmentAttachment {
+  name: string;
+  url: string;
+  signedUrl?: string;
+  path?: string;
+  size?: number;
+  mime?: string;
+}
+
 export interface AssignmentItem {
   id: string;
   class_id: string;
@@ -15,6 +24,7 @@ export interface AssignmentItem {
   score?: number | null;
   group_name?: string;
   submission_count?: number;
+  attachments?: AssignmentAttachment[];
 }
 
 const normalizeStatus = (rawStatus: any): 'Belum' | 'Sudah' | 'Telat' | 'Dinilai' => {
@@ -43,6 +53,14 @@ const normalizeAssignmentItem = (raw: any): AssignmentItem => {
     score: raw.score,
     group_name: raw.groupName || raw.group_name,
     submission_count: raw.submissionCount || raw.submission_count,
+    attachments: (raw.attachments || []).map((att: any) => ({
+      name: att.name || 'berkas',
+      url: att.url || att.signedUrl || att.path || '',
+      signedUrl: att.signedUrl || att.url || '',
+      path: att.path || '',
+      size: att.size,
+      mime: att.mime,
+    })),
   };
 };
 
@@ -66,15 +84,34 @@ export const getAssignmentByIdApi = async (id: string): Promise<AssignmentItem> 
   return normalizeAssignmentItem(res);
 };
 
-export const createAssignmentApi = async (payload: {
-  class_id: string;
-  title: string;
-  description: string;
-  type: 'individual' | 'group';
-  group_submission_mode?: 'representative' | 'individual';
-  due_date: string;
-  max_score: number;
-}): Promise<AssignmentItem> => {
+export const createAssignmentApi = async (
+  payload: {
+    class_id: string;
+    title: string;
+    description: string;
+    type: 'individual' | 'group';
+    group_submission_mode?: 'representative' | 'individual';
+    due_date: string;
+    max_score: number;
+    files?: File[];
+  },
+  onProgress?: (percent: number) => void
+): Promise<AssignmentItem> => {
+  if (payload.files && payload.files.length > 0) {
+    const formData = new FormData();
+    formData.append('classId', payload.class_id);
+    formData.append('title', payload.title);
+    formData.append('description', payload.description);
+    formData.append('type', payload.type);
+    if (payload.group_submission_mode) formData.append('groupSubmissionMode', payload.group_submission_mode);
+    formData.append('deadline', payload.due_date);
+    formData.append('maxScore', String(payload.max_score));
+    payload.files.forEach((f) => formData.append('files', f));
+
+    const res = await api.upload<any>('/assignments', formData, onProgress, 'POST');
+    return normalizeAssignmentItem(res);
+  }
+
   const res = await api.post<any>('/assignments', {
     classId: payload.class_id,
     title: payload.title,
@@ -87,12 +124,39 @@ export const createAssignmentApi = async (payload: {
   return normalizeAssignmentItem(res);
 };
 
-export const updateAssignmentApi = async (id: string, payload: Partial<AssignmentItem>): Promise<AssignmentItem> => {
-  const res = await api.put<any>(`/assignments/${id}`, payload);
+export const updateAssignmentApi = async (
+  id: string,
+  payload: Partial<AssignmentItem> & { files?: File[]; existing_attachments?: AssignmentAttachment[] },
+  onProgress?: (percent: number) => void
+): Promise<AssignmentItem> => {
+  if (payload.files && payload.files.length > 0) {
+    const formData = new FormData();
+    if (payload.title) formData.append('title', payload.title);
+    if (payload.description) formData.append('description', payload.description);
+    if (payload.type) formData.append('type', payload.type);
+    if (payload.group_submission_mode) formData.append('groupSubmissionMode', payload.group_submission_mode);
+    if (payload.due_date) formData.append('deadline', payload.due_date);
+    if (payload.max_score !== undefined) formData.append('maxScore', String(payload.max_score));
+    if (payload.existing_attachments) {
+      formData.append('existing_attachments', JSON.stringify(payload.existing_attachments));
+    }
+    payload.files.forEach((f) => formData.append('files', f));
+
+    const res = await api.upload<any>(`/assignments/${id}`, formData, onProgress, 'PUT');
+    return normalizeAssignmentItem(res);
+  }
+
+  const res = await api.put<any>(`/assignments/${id}`, {
+    ...payload,
+    deadline: payload.due_date,
+    maxScore: payload.max_score,
+    existing_attachments: payload.existing_attachments ? JSON.stringify(payload.existing_attachments) : undefined,
+  });
   return normalizeAssignmentItem(res);
 };
 
 export const deleteAssignmentApi = async (id: string, force = false): Promise<{ success: boolean }> => {
   return api.delete(`/assignments/${id}${force ? '?force=true' : ''}`);
 };
+
 
