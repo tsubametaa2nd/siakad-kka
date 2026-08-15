@@ -10,6 +10,7 @@
   import Button from '../../lib/components/ui/Button.svelte';
   import Card from '../../lib/components/ui/Card.svelte';
   import Skeleton from '../../lib/components/ui/Skeleton.svelte';
+  import FormattedText from '../../lib/components/ui/FormattedText.svelte';
   import { formatFullDateTimeWIB, formatTimeRemaining } from '../../lib/utils/date';
   import LampiranTugas from '../../lib/components/tugas/LampiranTugas.svelte';
 
@@ -95,8 +96,8 @@
           {assignment.title}
         </h2>
 
-        <div class="font-body text-xs sm:text-sm text-gray-800 whitespace-pre-line mb-4 bg-white p-3.5 sm:p-4 border-2 border-black overflow-x-auto max-w-full">
-          {assignment.description}
+        <div class="font-body text-xs sm:text-sm text-gray-800 mb-4 bg-white p-3.5 sm:p-4 border-2 border-black overflow-x-auto max-w-full">
+          <FormattedText text={assignment.description} />
         </div>
 
         {#if assignment.attachments && assignment.attachments.length > 0}

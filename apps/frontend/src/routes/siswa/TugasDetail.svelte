@@ -9,6 +9,7 @@
   import Badge from '../../lib/components/ui/Badge.svelte';
   import Card from '../../lib/components/ui/Card.svelte';
   import Skeleton from '../../lib/components/ui/Skeleton.svelte';
+  import FormattedText from '../../lib/components/ui/FormattedText.svelte';
   import { formatFullDateTimeWIB, formatTimeRemaining } from '../../lib/utils/date';
   import LampiranTugas from '../../lib/components/tugas/LampiranTugas.svelte';
 
@@ -93,8 +94,8 @@
           {assignment.title}
         </h2>
 
-        <div class="font-body text-sm text-gray-800 whitespace-pre-line mb-4 bg-white p-4 border-2 border-black">
-          {assignment.description}
+        <div class="font-body text-sm text-gray-800 mb-4 bg-white p-4 border-2 border-black">
+          <FormattedText text={assignment.description} />
         </div>
 
         {#if assignment.attachments && assignment.attachments.length > 0}

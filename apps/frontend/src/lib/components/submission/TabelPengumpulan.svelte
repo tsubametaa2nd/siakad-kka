@@ -4,6 +4,7 @@
   import Button from '../ui/Button.svelte';
   import Table from '../ui/Table.svelte';
   import Tabs from '../ui/Tabs.svelte';
+  import FormattedText from '../ui/FormattedText.svelte';
   import { formatDateTimeWIB } from '../../utils/date';
   import { formatFileSize, triggerFileDownload } from '../../utils/format';
   import type { TeacherSubmissionRow, TeacherSubmissionsResponse } from '../../api/submissions';
@@ -141,8 +142,8 @@
           <td class="p-3 border-r-2 border-black text-xs">
             <div class="flex flex-col gap-1">
               {#if row.content}
-                <div class="bg-yellow-50 p-1.5 border border-black font-body text-[11px] font-bold line-clamp-2 max-w-xs" title={row.content}>
-                  💬 {row.content}
+                <div class="bg-yellow-50 p-1.5 border border-black font-body text-[11px] font-bold max-w-xs overflow-hidden" title={row.content}>
+                  💬 <FormattedText text={row.content} />
                 </div>
               {/if}
               {#each row.files || [] as file}

@@ -192,22 +192,22 @@
   <form onsubmit={handleSubmit} class="flex flex-col gap-4">
     <Input label="Judul Tugas" required={true} bind:value={title} placeholder="Contoh: Modul 1 Web Design" />
 
-    <Textarea label="Deskripsi & Petunjuk Tugas" required={true} bind:value={description} rows={3} placeholder="Tuliskan petunjuk pengerjaan tugas..." />
+    <Textarea label="Deskripsi & Petunjuk Tugas" required={true} bind:value={description} rows={3} placeholder="Tuliskan petunjuk pengerjaan tugas atau tautan link terkait..." />
 
-    <!-- Unggah File Lampiran Guru (PDF / Word) -->
+    <!-- Unggah Foto Soal & Lampiran Berkas Guru -->
     <div class="border-2 border-black p-3.5 bg-yellow-50 flex flex-col gap-2.5">
       <div class="flex items-center justify-between">
         <label for="assignment-files-input" class="font-display font-black text-xs uppercase tracking-wide text-black flex items-center gap-1.5 cursor-pointer">
           <Paperclip size={15} />
-          <span>Lampiran Berkas (PDF / Word / Dokumentasi)</span>
+          <span>Foto Soal & Lampiran Berkas (Gambar / PDF / Word / PPT)</span>
         </label>
         <span class="font-mono text-xs text-gray-600 font-bold">
-          {existingAttachments.length + selectedFiles.length}/5 File
+          {existingAttachments.length + selectedFiles.length}/5 Berkas
         </span>
       </div>
 
       <p class="font-body text-xs text-gray-700 font-medium">
-        Unggah berkas soal atau panduan tugas berupa <strong>PDF</strong> atau <strong>Word (.doc / .docx)</strong> yang dapat dilihat dan diunduh oleh siswa.
+        Unggah <strong>foto lembar soal (PNG, JPG, WebP)</strong> atau berkas panduan tugas (PDF / Word / PPT / Excel). Siswa dapat langsung melihat foto soal dan mengunduh berkas pada halaman tugas.
       </p>
 
       <input
@@ -229,27 +229,38 @@
           disabled={existingAttachments.length + selectedFiles.length >= 5}
         >
           <Upload size={14} />
-          <span>+ Pilih File PDF/Word</span>
+          <span>+ Pilih Foto Soal / Berkas</span>
         </Button>
       </div>
 
       <!-- List Lampiran Lama (Mode Edit) -->
       {#if existingAttachments.length > 0}
         <div class="flex flex-col gap-1.5 pt-1">
-          <span class="font-mono text-xs font-bold text-gray-800 uppercase">File Terpasang:</span>
+          <span class="font-mono text-xs font-bold text-gray-800 uppercase">Berkas Terpasang:</span>
           {#each existingAttachments as file, idx}
-            <div class="flex items-center justify-between p-2 bg-white border-2 border-black font-mono text-xs">
-              <div class="flex items-center gap-2 truncate">
-                <FileText size={14} class="shrink-0 text-blue-600" />
-                <span class="truncate font-bold">{file.name}</span>
-                {#if file.size}
-                  <span class="text-gray-500 text-[11px]">({formatFileSize(file.size)})</span>
+            {@const isImg = file.mime?.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.name)}
+            <div class="flex items-center justify-between p-2 bg-white border-2 border-black font-mono text-xs gap-2">
+              <div class="flex items-center gap-2.5 truncate min-w-0">
+                {#if isImg && file.url}
+                  <img src={file.url} alt={file.name} class="w-10 h-10 object-cover border border-black shrink-0 bg-gray-100" />
+                  <span class="px-1.5 py-0.5 text-[10px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-400 shrink-0">FOTO</span>
+                {:else}
+                  <div class="w-10 h-10 flex items-center justify-center bg-blue-50 border border-black shrink-0">
+                    <FileText size={18} class="text-blue-600" />
+                  </div>
+                  <span class="px-1.5 py-0.5 text-[10px] font-black uppercase bg-blue-100 text-blue-800 border border-blue-400 shrink-0">DOKUMEN</span>
                 {/if}
+                <div class="flex flex-col truncate min-w-0">
+                  <span class="truncate font-bold text-black" title={file.name}>{file.name}</span>
+                  {#if file.size}
+                    <span class="text-gray-500 text-[11px]">({formatFileSize(file.size)})</span>
+                  {/if}
+                </div>
               </div>
               <button
                 type="button"
                 onclick={() => removeExistingAttachment(idx)}
-                class="text-red-600 hover:text-red-800 p-1 cursor-pointer"
+                class="text-red-600 hover:text-red-800 p-1.5 cursor-pointer shrink-0 border border-transparent hover:border-black hover:bg-red-50"
                 title="Hapus lampiran ini"
               >
                 <Trash2 size={14} />
@@ -262,18 +273,29 @@
       <!-- List Lampiran Baru Ditambahkan -->
       {#if selectedFiles.length > 0}
         <div class="flex flex-col gap-1.5 pt-1">
-          <span class="font-mono text-xs font-bold text-green-800 uppercase">File Baru Ditambahkan:</span>
+          <span class="font-mono text-xs font-bold text-green-800 uppercase">Berkas Baru Ditambahkan:</span>
           {#each selectedFiles as file, idx}
-            <div class="flex items-center justify-between p-2 bg-green-50 border-2 border-black font-mono text-xs">
-              <div class="flex items-center gap-2 truncate">
-                <FileText size={14} class="shrink-0 text-green-700" />
-                <span class="truncate font-bold">{file.name}</span>
-                <span class="text-gray-600 text-[11px]">({formatFileSize(file.size)})</span>
+            {@const isImg = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.name)}
+            <div class="flex items-center justify-between p-2 bg-green-50 border-2 border-black font-mono text-xs gap-2">
+              <div class="flex items-center gap-2.5 truncate min-w-0">
+                {#if isImg}
+                  <img src={URL.createObjectURL(file)} alt={file.name} class="w-10 h-10 object-cover border border-black shrink-0 bg-gray-100" />
+                  <span class="px-1.5 py-0.5 text-[10px] font-black uppercase bg-purple-100 text-purple-800 border border-purple-400 shrink-0">FOTO</span>
+                {:else}
+                  <div class="w-10 h-10 flex items-center justify-center bg-green-100 border border-black shrink-0">
+                    <FileText size={18} class="text-green-700" />
+                  </div>
+                  <span class="px-1.5 py-0.5 text-[10px] font-black uppercase bg-green-200 text-green-900 border border-green-500 shrink-0">DOKUMEN</span>
+                {/if}
+                <div class="flex flex-col truncate min-w-0">
+                  <span class="truncate font-bold text-black" title={file.name}>{file.name}</span>
+                  <span class="text-gray-600 text-[11px]">({formatFileSize(file.size)})</span>
+                </div>
               </div>
               <button
                 type="button"
                 onclick={() => removeSelectedFile(idx)}
-                class="text-red-600 hover:text-red-800 p-1 cursor-pointer"
+                class="text-red-600 hover:text-red-800 p-1.5 cursor-pointer shrink-0 border border-transparent hover:border-black hover:bg-red-50"
                 title="Batal unggah file ini"
               >
                 <Trash2 size={14} />

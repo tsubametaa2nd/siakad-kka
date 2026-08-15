@@ -15,6 +15,7 @@
   import Input from '../../lib/components/ui/Input.svelte';
   import Skeleton from '../../lib/components/ui/Skeleton.svelte';
   import Textarea from '../../lib/components/ui/Textarea.svelte';
+  import FormattedText from '../../lib/components/ui/FormattedText.svelte';
   import { toastStore } from '../../lib/stores/toast.svelte';
 
   interface Props {
@@ -218,8 +219,8 @@
                   <span class="font-mono text-xs text-gray-600 font-bold">{new Date(currentSub.submitted_at).toLocaleString('id-ID')}</span>
                 {/if}
               </div>
-              <div class="font-body text-sm whitespace-pre-line text-black bg-white p-4 border-2 border-black leading-relaxed">
-                {currentSub.content}
+              <div class="font-body text-sm text-black bg-white p-4 border-2 border-black leading-relaxed">
+                <FormattedText text={currentSub.content} />
               </div>
             </Card>
           {/if}
