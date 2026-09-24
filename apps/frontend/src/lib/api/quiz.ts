@@ -59,16 +59,62 @@ export interface InProgressStudent {
   total_questions: number;
 }
 
+export interface UnattemptedStudent {
+  student_id: string;
+  student_name: string;
+  identifier: string;
+}
+
 export interface TeacherQuizResultsResponse {
   quiz_title: string;
+  class_id?: string;
+  class_name?: string;
+  spreadsheet_id?: string | null;
+  spreadsheet_url?: string | null;
   total_students: number;
   attempted_count: number;
   in_progress_count: number;
+  unattempted_count?: number;
   in_progress: InProgressStudent[];
   results: TeacherQuizResultRow[];
+  unattempted?: UnattemptedStudent[];
+}
+
+export interface StudentAttemptItemBreakdown {
+  number: number;
+  question: string;
+  options: string[];
+  student_answer_index: number;
+  student_answer_text: string | null;
+  correct_answer_index: number;
+  correct_answer_text: string;
+  is_correct: boolean;
+  is_answered: boolean;
+  points: number;
+  earned_points: number;
+}
+
+export interface StudentAttemptDetailResponse {
+  quiz_id: string;
+  quiz_title: string;
+  student_id: string;
+  student_name: string;
+  identifier: string;
+  score: number;
+  max_score: number;
+  percentage: number;
+  started_at: string | null;
+  completed_at: string | null;
+  time_taken_seconds: number | null;
+  total_questions: number;
+  correct_count: number;
+  incorrect_count: number;
+  unanswered_count: number;
+  items: StudentAttemptItemBreakdown[];
 }
 
 export interface LeaderboardEntry {
+
   rank: number;
   student_id: string;
   student_name: string;
@@ -141,8 +187,37 @@ export const reportProgressApi = async (attemptId: string, answeredCount: number
   } catch { /* silent — progress is best-effort */ }
 };
 
+export const getQuizDetailApi = async (quizId: string): Promise<any> => {
+  return api.get<any>(`/quiz/${quizId}`);
+};
+
+export const updateQuizApi = async (
+  quizId: string,
+  payload: {
+    title?: string;
+    duration_minutes?: number;
+    timeLimitMinutes?: number;
+    due_date?: string;
+    deadline?: string;
+    questions?: QuestionDraft[];
+  }
+): Promise<QuizItem> => {
+  return api.put<QuizItem>(`/quiz/${quizId}`, payload);
+};
+
+export const deleteQuizApi = async (quizId: string, force = false): Promise<{ deleted: boolean }> => {
+  return api.delete<{ deleted: boolean }>(`/quiz/${quizId}${force ? '?force=true' : ''}`);
+};
+
 export const getTeacherQuizResultsApi = async (quizId: string): Promise<TeacherQuizResultsResponse> => {
   return api.get<TeacherQuizResultsResponse>(`/quiz/${quizId}/results`);
+};
+
+export const getStudentQuizAttemptDetailApi = async (
+  quizId: string,
+  studentId: string
+): Promise<StudentAttemptDetailResponse> => {
+  return api.get<StudentAttemptDetailResponse>(`/quiz/${quizId}/student/${studentId}`);
 };
 
 export const getQuizLeaderboardApi = async (quizId: string): Promise<QuizLeaderboardResponse> => {
@@ -152,4 +227,29 @@ export const getQuizLeaderboardApi = async (quizId: string): Promise<QuizLeaderb
 export const getStudentQuizLeaderboardApi = async (quizId: string): Promise<QuizLeaderboardResponse> => {
   return api.get<QuizLeaderboardResponse>(`/quiz/${quizId}/leaderboard/siswa`);
 };
+
+export interface SyncQuizGradesPayload {
+  column_title?: string;
+  include_all_students?: boolean;
+  unattempted_score?: number | null;
+}
+
+export interface SyncQuizGradesResponse {
+  success: boolean;
+  total_students: number;
+  synced_count: number;
+  fail_count: number;
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  column_title: string;
+}
+
+export const syncQuizGradesToSpreadsheetApi = async (
+  quizId: string,
+  payload?: SyncQuizGradesPayload
+): Promise<SyncQuizGradesResponse> => {
+  return api.post<SyncQuizGradesResponse>(`/quiz/${quizId}/sync-sheets`, payload || {});
+};
+
+
 

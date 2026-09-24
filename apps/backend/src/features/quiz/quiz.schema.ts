@@ -40,6 +40,20 @@ export const attemptQuizSchema = t.Object({
   })),
 });
 
+export const updateQuizSchema = t.Object({
+  // camelCase
+  timeLimitMinutes: t.Optional(t.Numeric({ minimum: 1 })),
+  deadline: t.Optional(t.String()),
+  // snake_case
+  duration_minutes: t.Optional(t.Numeric({ minimum: 1 })),
+  due_date: t.Optional(t.String()),
+  // shared
+  title: t.Optional(t.String({ minLength: 1 })),
+  questions: t.Optional(t.Array(questionSchema, { minItems: 1 })),
+});
+
 export type CreateQuizBody = typeof createQuizSchema.static;
+export type UpdateQuizBody = typeof updateQuizSchema.static;
 export type StartQuizBody = typeof startQuizSchema.static;
 export type AttemptQuizBody = typeof attemptQuizSchema.static;
+

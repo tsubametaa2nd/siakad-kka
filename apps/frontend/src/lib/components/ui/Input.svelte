@@ -11,6 +11,8 @@
     id?: string;
     name?: string;
     class?: string;
+    min?: string | number;
+    max?: string | number;
     oninput?: (e: Event) => void;
     onchange?: (e: Event) => void;
     onblur?: (e: FocusEvent) => void;
@@ -28,6 +30,8 @@
     id = crypto.randomUUID(),
     name,
     class: className = '',
+    min,
+    max,
     oninput,
     onchange,
     onblur
@@ -51,10 +55,13 @@
     {placeholder}
     {disabled}
     {required}
+    {min}
+    {max}
     bind:value
     {oninput}
     {onchange}
     {onblur}
+
     class="w-full px-3.5 py-2.5 bg-white text-black font-body font-medium border-2 border-black rounded-none shadow-brutal-sm transition-all duration-100 focus:outline-[3px] focus:outline-black focus:outline-offset-2 disabled:bg-gray-100 disabled:opacity-60 disabled:shadow-none disabled:cursor-not-allowed {error ? 'border-accent bg-pink-50' : ''}"
   />
 

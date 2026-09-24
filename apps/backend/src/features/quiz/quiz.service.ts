@@ -1,9 +1,10 @@
 // Fitur: layanan bisnis quiz
-import { isStudentEnrolled, findProfilesByIds, findClassesByStudent } from "../classes/classes.repository";
+import { isStudentEnrolled, findProfilesByIds, findClassesByStudent, findClassById, findClassStudents } from "../classes/classes.repository";
 import { assertTeacherOwnsClass } from "../classes/classes.service";
 import { BadRequest, Conflict, Forbidden, NotFound } from "../../shared/utils/errors";
 import * as quizRepo from "./quiz.repository";
-import type { AttemptQuizBody, CreateQuizBody, StartQuizBody } from "./quiz.schema";
+import type { AttemptQuizBody, CreateQuizBody, StartQuizBody, UpdateQuizBody } from "./quiz.schema";
+import { syncGradeToSheet, extractSpreadsheetId } from "../grading/grading.sheets";
 
 /** Fisher-Yates shuffle – menghasilkan array indeks teracak */
 const shuffleIndices = (length: number): number[] => {
@@ -13,6 +14,21 @@ const shuffleIndices = (length: number): number[] => {
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
   return indices;
+};
+
+// Normalize questions: accept both {text, answer, points} and {question, answer_index, weight}
+const normalizeQuestions = (questions: any[]) => {
+  return questions.map((q: any, i: number) => {
+    const text = q.text || q.question;
+    const answer = q.answer !== undefined ? q.answer : q.answer_index;
+    const points = q.points !== undefined ? Number(q.points) : Number(q.weight ?? 1);
+
+    if (!text || text.trim().length === 0) throw BadRequest(`Soal ke-${i + 1} tidak boleh kosong`);
+    if (!q.options || q.options.length < 2) throw BadRequest(`Soal ke-${i + 1} minimal harus memiliki 2 pilihan jawaban`);
+    if (answer === undefined || answer < 0 || answer >= q.options.length) throw BadRequest(`Kunci jawaban soal ke-${i + 1} tidak valid`);
+
+    return { text: text.trim(), options: q.options.map((o: string) => o.trim()), answer, points };
+  });
 };
 
 export const createQuiz = async (teacherId: string, body: CreateQuizBody) => {
@@ -30,18 +46,7 @@ export const createQuiz = async (teacherId: string, body: CreateQuizBody) => {
     throw BadRequest("Deadline harus di masa depan");
   }
 
-  // Normalize questions: accept both {text, answer, points} and {question, answer_index, weight}
-  const normalizedQuestions = body.questions.map((q: any, i: number) => {
-    const text = q.text || q.question;
-    const answer = q.answer !== undefined ? q.answer : q.answer_index;
-    const points = q.points !== undefined ? Number(q.points) : Number(q.weight ?? 1);
-
-    if (!text || text.trim().length === 0) throw BadRequest(`Soal ke-${i + 1} tidak boleh kosong`);
-    if (!q.options || q.options.length < 2) throw BadRequest(`Soal ke-${i + 1} minimal harus memiliki 2 pilihan jawaban`);
-    if (answer === undefined || answer < 0 || answer >= q.options.length) throw BadRequest(`Kunci jawaban soal ke-${i + 1} tidak valid`);
-
-    return { text: text.trim(), options: q.options.map((o: string) => o.trim()), answer, points };
-  });
+  const normalizedQuestions = normalizeQuestions(body.questions);
 
   return await quizRepo.createQuiz({
     classId,
@@ -52,6 +57,79 @@ export const createQuiz = async (teacherId: string, body: CreateQuizBody) => {
     timeLimitMinutes,
   });
 };
+
+export const updateQuiz = async (teacherId: string, quizId: string, body: UpdateQuizBody) => {
+  const quiz = await quizRepo.findQuizByIdWithSecret(quizId);
+  if (!quiz) throw NotFound("Quiz tidak ditemukan");
+
+  await assertTeacherOwnsClass(teacherId, quiz.classId);
+
+  const updates: any = {};
+
+  if (body.title !== undefined) {
+    const cleanTitle = body.title.trim();
+    if (!cleanTitle) throw BadRequest("Nama quiz tidak boleh kosong");
+    updates.title = cleanTitle;
+  }
+
+  const deadline = body.deadline || (body as any).due_date;
+  if (deadline !== undefined) {
+    const deadlineDate = new Date(deadline);
+    if (isNaN(deadlineDate.getTime())) {
+      throw BadRequest("Format tanggal tenggat waktu tidak valid");
+    }
+    updates.deadline = deadlineDate.toISOString();
+  }
+
+  const rawDuration = body.timeLimitMinutes ?? (body as any).duration_minutes;
+  if (rawDuration !== undefined) {
+    const timeLimitMinutes = Number(rawDuration);
+    if (isNaN(timeLimitMinutes) || timeLimitMinutes < 1) {
+      throw BadRequest("Durasi quiz minimal 1 menit");
+    }
+    updates.timeLimitMinutes = timeLimitMinutes;
+  }
+
+  if (body.questions && Array.isArray(body.questions)) {
+    if (body.questions.length === 0) {
+      throw BadRequest("Quiz minimal harus memiliki 1 soal");
+    }
+    updates.questions = normalizeQuestions(body.questions);
+  }
+
+  return await quizRepo.updateQuiz(quizId, updates);
+};
+
+export const deleteQuiz = async (teacherId: string, quizId: string, force = false) => {
+  const quiz = await quizRepo.findQuizByIdWithSecret(quizId);
+  if (!quiz) throw NotFound("Quiz tidak ditemukan");
+
+  await assertTeacherOwnsClass(teacherId, quiz.classId);
+
+  const attemptCount = await quizRepo.countQuizAttempts(quizId);
+  if (attemptCount > 0 && !force) {
+    throw Conflict("Quiz sudah memiliki hasil pengerjaan siswa. Gunakan force=true untuk menghapus quiz beserta seluruh riwayat pengerjaan siswa", "HAS_ATTEMPTS");
+  }
+
+  if (attemptCount > 0 && force) {
+    await quizRepo.deleteAttemptsByQuiz(quizId);
+  }
+
+  await quizRepo.deleteQuiz(quizId);
+  return { deleted: true };
+};
+
+export const getQuizDetail = async (userId: string, userRole: string, quizId: string) => {
+  if (userRole === "teacher") {
+    const quiz = await quizRepo.findQuizByIdWithSecret(quizId);
+    if (!quiz) throw NotFound("Quiz tidak ditemukan");
+    await assertTeacherOwnsClass(userId, quiz.classId);
+    return quiz;
+  }
+
+  return await getQuizForStudent(userId, quizId);
+};
+
 
 export const getClassQuizzes = async (userId: string, userRole: string, classId: string) => {
   if (userRole === "teacher") {
@@ -228,13 +306,24 @@ export const getQuizResults = async (teacherId: string, quizId: string) => {
   const attempts = await quizRepo.findQuizResults(quizId);
   const inProgressAttempts = await quizRepo.findInProgressAttempts(quizId);
 
-  // Ambil jumlah total siswa di kelas
-  let totalStudents = 0;
+  // Ambil data siswa dan spreadsheet kelas
+  let classStudents: any[] = [];
+  let cls: any = null;
   try {
-    const { findClassStudents } = await import("../classes/classes.repository");
-    const students = await findClassStudents(quiz.classId);
-    totalStudents = students?.length ?? 0;
+    const [students, classData] = await Promise.all([
+      findClassStudents(quiz.classId),
+      findClassById(quiz.classId),
+    ]);
+    classStudents = students ?? [];
+    cls = classData;
   } catch { /* if not available, fallback */ }
+
+  const cleanSpreadsheetId = extractSpreadsheetId(cls?.spreadsheet_id);
+  const spreadsheetUrl = cleanSpreadsheetId
+    ? `https://docs.google.com/spreadsheets/d/${cleanSpreadsheetId}/edit`
+    : null;
+
+  const totalStudents = classStudents.length || (attempts.length + inProgressAttempts.length);
 
   // Ambil profil semua siswa yang terlibat (sudah submit + sedang mengerjakan)
   const allStudentIds = [
@@ -275,15 +364,32 @@ export const getQuizResults = async (teacherId: string, quizId: string) => {
     };
   });
 
+  // Siswa yang belum mengerjakan (terdaftar di kelas tapi belum submit dan belum mulai)
+  const attendedIdsSet = new Set(allStudentIds);
+  const unattempted = classStudents
+    .filter((s: any) => !attendedIdsSet.has(s.id))
+    .map((s: any) => ({
+      student_id: s.id,
+      student_name: s.name || s.full_name || "Siswa",
+      identifier: s.identifier || "-",
+    }));
+
   return {
     quiz_title: quiz.title,
-    total_students: totalStudents || (attempts.length + inProgressAttempts.length),
+    class_id: quiz.classId,
+    class_name: cls?.name ?? "",
+    spreadsheet_id: cls?.spreadsheet_id ?? null,
+    spreadsheet_url: spreadsheetUrl,
+    total_students: totalStudents,
     attempted_count: attempts.length,
     in_progress_count: inProgressAttempts.length,
+    unattempted_count: unattempted.length,
     in_progress,
     results,
+    unattempted,
   };
 };
+
 
 /** Ambil leaderboard — bisa dipanggil guru atau siswa yang sudah submit */
 const buildLeaderboard = async (quiz: any, quizId: string) => {
@@ -335,5 +441,205 @@ export const getQuizLeaderboardForStudent = async (studentId: string, quizId: st
 
   return await buildLeaderboard(quiz, quizId);
 };
+
+export const getStudentAttemptDetail = async (teacherId: string, quizId: string, studentId: string) => {
+  const quiz = await quizRepo.findQuizByIdWithSecret(quizId);
+  if (!quiz) throw NotFound("Quiz tidak ditemukan");
+  await assertTeacherOwnsClass(teacherId, quiz.classId);
+
+  const profiles = await findProfilesByIds([studentId]);
+  const profile = profiles?.[0] ?? { full_name: "Siswa", identifier: "-" };
+
+  const attempt = await quizRepo.findAttempt(quizId, studentId);
+  if (!attempt || !attempt.submittedAt) {
+    throw NotFound("Siswa belum menyelesaikan pengerjaan quiz ini");
+  }
+
+  const rawAnswers: number[] = Array.isArray(attempt.answers) ? attempt.answers : [];
+  const questions = quiz.questions || [];
+
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unansweredCount = 0;
+
+  const items = questions.map((q: any, idx: number) => {
+    const studentAnsIdx = rawAnswers[idx] !== undefined ? rawAnswers[idx] : -1;
+    const correctAnsIdx = q.answer;
+    const isAnswered = studentAnsIdx !== -1 && studentAnsIdx !== undefined && studentAnsIdx < q.options.length;
+    const isCorrect = isAnswered && studentAnsIdx === correctAnsIdx;
+
+    if (!isAnswered) {
+      unansweredCount++;
+    } else if (isCorrect) {
+      correctCount++;
+    } else {
+      incorrectCount++;
+    }
+
+    const points = Number(q.points ?? 1);
+    const earnedPoints = isCorrect ? points : 0;
+
+    return {
+      number: idx + 1,
+      question: q.text,
+      options: q.options || [],
+      student_answer_index: studentAnsIdx,
+      student_answer_text: isAnswered ? q.options[studentAnsIdx] : null,
+      correct_answer_index: correctAnsIdx,
+      correct_answer_text: q.options[correctAnsIdx] ?? "",
+      is_correct: isCorrect,
+      is_answered: isAnswered,
+      points,
+      earned_points: earnedPoints,
+    };
+  });
+
+  return {
+    quiz_id: quizId,
+    quiz_title: quiz.title,
+    student_id: studentId,
+    student_name: (profile as any).full_name,
+    identifier: (profile as any).identifier,
+    score: attempt.score ?? 0,
+    max_score: attempt.maxScore ?? questions.reduce((acc: number, q: any) => acc + Number(q.points ?? 1), 0),
+    percentage: attempt.maxScore ? Math.round(((attempt.score ?? 0) / attempt.maxScore) * 100) : 0,
+    started_at: attempt.startedAt ?? null,
+    completed_at: attempt.submittedAt ?? null,
+    time_taken_seconds: attempt.timeTakenSeconds ?? null,
+    total_questions: questions.length,
+    correct_count: correctCount,
+    incorrect_count: incorrectCount,
+    unanswered_count: unansweredCount,
+    items,
+  };
+};
+
+export interface SyncQuizGradesOptions {
+  column_title?: string;
+  include_all_students?: boolean;
+  unattempted_score?: number | null;
+}
+
+export const syncQuizGradesToSpreadsheet = async (
+  teacherId: string,
+  quizId: string,
+  options: SyncQuizGradesOptions = {}
+) => {
+  const quiz = await quizRepo.findQuizByIdWithSecret(quizId);
+  if (!quiz) throw NotFound("Quiz tidak ditemukan");
+  await assertTeacherOwnsClass(teacherId, quiz.classId);
+
+  const cls = await findClassById(quiz.classId);
+  if (!cls?.spreadsheet_id) {
+    throw BadRequest(
+      "Kelas ini belum memiliki ID Google Spreadsheet yang ditautkan. Silakan atur dan tautkan Google Spreadsheet di Pengaturan Kelas terlebih dahulu."
+    );
+  }
+
+  const cleanSpreadsheetId = extractSpreadsheetId(cls.spreadsheet_id);
+  if (!cleanSpreadsheetId) {
+    throw BadRequest("ID Google Spreadsheet pada kelas ini tidak valid.");
+  }
+
+  // Tentukan judul kolom spreadsheet (default: "Quiz: <Judul>" atau gunakan kustom)
+  let columnTitle = (options.column_title || "").trim();
+  if (!columnTitle) {
+    const isAlreadyQuizPrefixed =
+      quiz.title.toLowerCase().startsWith("quiz") || quiz.title.toLowerCase().startsWith("kuis");
+    columnTitle = isAlreadyQuizPrefixed ? quiz.title : `Quiz: ${quiz.title}`;
+  }
+
+  const attempts = await quizRepo.findQuizResults(quizId);
+  const classStudents = await findClassStudents(quiz.classId);
+
+  if (attempts.length === 0 && !options.include_all_students) {
+    throw BadRequest("Belum ada siswa yang menyelesaikan quiz ini untuk diimpor ke spreadsheet.");
+  }
+
+  const attemptMap = new Map<string, any>((attempts || []).map((a: any) => [a.studentId, a]));
+
+  type StudentGradeItem = {
+    studentId: string;
+    nis: string;
+    name: string;
+    score: number | string;
+  };
+
+  const syncList: StudentGradeItem[] = [];
+
+  if (options.include_all_students) {
+    const fallbackScore =
+      options.unattempted_score !== undefined && options.unattempted_score !== null
+        ? Number(options.unattempted_score)
+        : "-";
+
+    for (const student of classStudents) {
+      const attempt: any = attemptMap.get(student.id);
+      const score = attempt?.submittedAt ? Number(attempt.score ?? 0) : fallbackScore;
+      syncList.push({
+        studentId: student.id,
+        nis: student.identifier || "",
+        name: student.name || student.full_name || "Siswa",
+        score,
+      });
+    }
+  } else {
+    const studentIds = attempts.map((a: any) => a.studentId);
+    const profiles = await findProfilesByIds(studentIds);
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+
+    for (const attempt of attempts) {
+      const profile = profileMap.get(attempt.studentId);
+      syncList.push({
+        studentId: attempt.studentId,
+        nis: (profile as any)?.identifier || "",
+        name: (profile as any)?.full_name || "Siswa",
+        score: Number(attempt.score ?? 0),
+      });
+    }
+  }
+
+  if (syncList.length === 0) {
+    throw BadRequest("Tidak ada data siswa untuk disinkronkan ke spreadsheet.");
+  }
+
+  let syncedCount = 0;
+  let failCount = 0;
+  const errors: string[] = [];
+
+  for (const item of syncList) {
+    try {
+      await syncGradeToSheet(cls.spreadsheet_id, item.nis, item.name, columnTitle, item.score);
+      syncedCount++;
+    } catch (err: any) {
+      failCount++;
+      const errMsg = err.message || "Gagal sinkron";
+      errors.push(`${item.name}: ${errMsg}`);
+      console.error(`[Google Sheets Quiz Sync Error] ${item.name}:`, err);
+    }
+    // Jeda 100ms cegah rate limit Google API
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  if (syncedCount === 0 && syncList.length > 0) {
+    throw BadRequest(
+      errors[0] ||
+        "Gagal menyinkronkan nilai ke Google Spreadsheet. Pastikan ID Spreadsheet valid dan sudah di-share sebagai Editor ke Email Service Account."
+    );
+  }
+
+  const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${cleanSpreadsheetId}/edit`;
+
+  return {
+    success: true,
+    total_students: syncList.length,
+    synced_count: syncedCount,
+    fail_count: failCount,
+    spreadsheet_id: cls.spreadsheet_id,
+    spreadsheet_url: spreadsheetUrl,
+    column_title: columnTitle,
+  };
+};
+
 
 

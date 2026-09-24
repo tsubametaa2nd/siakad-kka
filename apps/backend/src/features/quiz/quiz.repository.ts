@@ -125,3 +125,30 @@ export const findQuizLeaderboard = async (quizId: string, limit = 1000) => {
     return attempts;
   });
 };
+
+export const updateQuiz = async (id: string, updates: any) => {
+  return execAstra(async () => {
+    const patch = { ...updates, updatedAt: new Date().toISOString() };
+    await getQuizzesCol().updateOne({ _id: id }, { $set: patch });
+    return await findQuizByIdWithSecret(id);
+  });
+};
+
+export const deleteQuiz = async (id: string) => {
+  return execAstra(async () => {
+    await getQuizzesCol().deleteOne({ _id: id });
+  });
+};
+
+export const countQuizAttempts = async (quizId: string) => {
+  return execAstra(async () => {
+    const att = await getAttemptsCol().findOne({ quizId });
+    return att ? 1 : 0;
+  });
+};
+
+export const deleteAttemptsByQuiz = async (quizId: string) => {
+  return execAstra(async () => {
+    await getAttemptsCol().deleteMany({ quizId });
+  });
+};

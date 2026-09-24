@@ -7,6 +7,14 @@
     CheckCircle2,
     Zap,
     Timer,
+    UserX,
+    Copy,
+    Check,
+    Search,
+    Eye,
+    FileSpreadsheet,
+    ExternalLink,
+    ArrowRight,
   } from "lucide-svelte";
   import {
     getTeacherQuizResultsApi,
@@ -15,13 +23,20 @@
     type QuizLeaderboardResponse,
     type LeaderboardEntry,
     type InProgressStudent,
+    type UnattemptedStudent,
   } from "../../lib/api/quiz";
+  import DetailJawabanSiswaModal from "../../lib/components/quiz/DetailJawabanSiswaModal.svelte";
+  import ImportSpreadsheetQuizModal from "../../lib/components/quiz/ImportSpreadsheetQuizModal.svelte";
   import AppShell from "../../lib/components/layout/AppShell.svelte";
   import Alert from "../../lib/components/ui/Alert.svelte";
   import Badge from "../../lib/components/ui/Badge.svelte";
+  import Button from "../../lib/components/ui/Button.svelte";
+  import EmptyState from "../../lib/components/ui/EmptyState.svelte";
+  import Input from "../../lib/components/ui/Input.svelte";
   import Table from "../../lib/components/ui/Table.svelte";
   import Tabs from "../../lib/components/ui/Tabs.svelte";
   import Skeleton from "../../lib/components/ui/Skeleton.svelte";
+  import { toastStore } from "../../lib/stores/toast.svelte";
   import { formatDateTimeWIB } from "../../lib/utils/date";
 
   interface Props {
@@ -40,6 +55,22 @@
   let activeTab = $state<string>("rekap");
   let lastUpdated = $state<Date | null>(null);
   let pollInterval: ReturnType<typeof setInterval> | null = null;
+  let searchUnattemptedQuery = $state<string>("");
+  let copied = $state<boolean>(false);
+
+  let showStudentDetailModal = $state(false);
+  let selectedStudentId = $state("");
+  let selectedStudentName = $state("");
+  let selectedStudentIdentifier = $state("");
+
+  let showSpreadsheetModal = $state(false);
+
+  const openStudentDetail = (id: string, name: string, identifier: string) => {
+    selectedStudentId = id;
+    selectedStudentName = name;
+    selectedStudentIdentifier = identifier;
+    showStudentDetailModal = true;
+  };
 
   const breadcrumbs = $derived([
     { label: "Beranda Guru", href: "/guru" },
@@ -50,10 +81,31 @@
     },
   ]);
 
-  const tabItems = [
-    { id: "rekap", label: "Rekap Nilai", icon: ClipboardList },
+  const unattemptedList = $derived(resultsData?.unattempted ?? []);
+  const unattemptedCount = $derived(
+    resultsData?.unattempted_count ??
+      unattemptedList.length ??
+      (resultsData ? resultsData.total_students - resultsData.attempted_count - (resultsData.in_progress_count ?? 0) : 0)
+  );
+
+  const tabItems = $derived([
+    { id: "rekap", label: `Rekap Nilai (${resultsData?.attempted_count ?? 0})`, icon: ClipboardList },
+    { id: "belum", label: `Belum Mengerjakan (${unattemptedCount})`, icon: UserX },
     { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-  ];
+  ]);
+
+  const copyUnattemptedNames = () => {
+    if (!unattemptedList.length) return;
+    const text = unattemptedList
+      .map((s, idx) => `${idx + 1}. ${s.student_name} (${s.identifier})`)
+      .join("\n");
+    navigator.clipboard.writeText(`Daftar Siswa Belum Mengerjakan Quiz "${resultsData?.quiz_title}":\n${text}`);
+    copied = true;
+    toastStore.add("Daftar siswa berhasil disalin ke clipboard!", "info");
+    setTimeout(() => {
+      copied = false;
+    }, 2500);
+  };
 
   $effect(() => {
     if (quizId) {
@@ -189,11 +241,90 @@
             >
               {resultsData.quiz_title}
             </h2>
+            {#if resultsData.class_name}
+              <div class="font-mono text-xs text-gray-700 font-bold mt-0.5">
+                Kelas: {resultsData.class_name}
+              </div>
+            {/if}
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <Badge tone="info"
               >{resultsData.attempted_count} dari {resultsData.total_students} Mengerjakan</Badge
             >
+            <Button
+              variant="primary"
+              size="sm"
+              onclick={() => (showSpreadsheetModal = true)}
+              class="shrink-0"
+            >
+              <span class="flex items-center gap-1.5">
+                <FileSpreadsheet size={15} />
+                <span>Impor Nilai ke Spreadsheet</span>
+              </span>
+            </Button>
+          </div>
+        </div>
+
+        <!-- Google Sheets Banner -->
+        <div class="border-2 border-black bg-white p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-brutal-sm">
+          <div class="flex items-start sm:items-center gap-3">
+            <div class="p-2 border-2 border-black {resultsData.spreadsheet_id ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'} shrink-0">
+              <FileSpreadsheet size={20} />
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-display font-black text-xs uppercase tracking-wide">Google Spreadsheet Kelas:</span>
+                {#if resultsData.spreadsheet_id}
+                  <Badge tone="success">Terhubung</Badge>
+                  <span class="font-mono text-xs text-gray-700 font-semibold truncate max-w-[180px] sm:max-w-xs" title={resultsData.spreadsheet_id}>
+                    ID: {resultsData.spreadsheet_id}
+                  </span>
+                {:else}
+                  <Badge tone="warning">Belum Ditautkan</Badge>
+                {/if}
+              </div>
+              <p class="font-body text-xs text-gray-700">
+                {#if resultsData.spreadsheet_id}
+                  Nilai quiz siswa dapat langsung diimpor ke spreadsheet kelas yang sudah tertera ini.
+                {:else}
+                  Tautkan Spreadsheet ID di <strong>Pengaturan Kelas</strong> agar nilai quiz dapat otomatis diimpor ke Google Sheets.
+                {/if}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            {#if resultsData.spreadsheet_id}
+              {#if resultsData.spreadsheet_url}
+                <a
+                  href={resultsData.spreadsheet_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 border-2 border-black bg-white font-display font-black text-xs uppercase shadow-brutal-sm hover:bg-gray-100 transition-colors"
+                >
+                  <span>Buka Sheet</span>
+                  <ExternalLink size={12} />
+                </a>
+              {/if}
+              <Button
+                variant="primary"
+                size="sm"
+                onclick={() => (showSpreadsheetModal = true)}
+              >
+                <span class="flex items-center gap-1.5">
+                  <FileSpreadsheet size={14} />
+                  <span>Impor Sekarang</span>
+                </span>
+              </Button>
+            {:else if resultsData.class_id}
+              <a
+                href={`#/guru/kelas/${resultsData.class_id}`}
+                class="inline-flex items-center gap-1 px-3 py-1.5 border-2 border-black bg-yellow-400 font-display font-black text-xs uppercase shadow-brutal-sm hover:bg-yellow-500 transition-colors"
+              >
+                <span>Atur di Pengaturan Kelas</span>
+                <ArrowRight size={12} />
+              </a>
+            {/if}
           </div>
         </div>
 
@@ -206,7 +337,12 @@
               {resultsData.total_students}
             </div>
           </div>
-          <div class="bg-white p-3 border-2 border-black">
+          <button
+            type="button"
+            onclick={() => (activeTab = "rekap")}
+            class="bg-white p-3 border-2 border-black text-center cursor-pointer hover:bg-emerald-50 hover:border-emerald-500 transition-all {activeTab === 'rekap' ? 'bg-emerald-50 border-emerald-600' : ''}"
+            title="Lihat rekap nilai siswa yang sudah selesai"
+          >
             <div class="font-mono text-xs text-gray-600 font-bold uppercase">
               Sudah Selesai
             </div>
@@ -215,7 +351,7 @@
             >
               {resultsData.attempted_count}
             </div>
-          </div>
+          </button>
           <div
             class="bg-amber-50 p-3 border-2 border-amber-500 relative overflow-hidden"
           >
@@ -228,16 +364,19 @@
               {resultsData.in_progress_count ?? 0}
             </div>
           </div>
-          <div class="bg-white p-3 border-2 border-black">
+          <button
+            type="button"
+            onclick={() => (activeTab = "belum")}
+            class="bg-white p-3 border-2 border-black text-center cursor-pointer hover:bg-red-50 hover:border-red-500 transition-all {activeTab === 'belum' ? 'bg-red-50 border-red-600' : ''}"
+            title="Klik untuk melihat siapa saja yang belum mengerjakan"
+          >
             <div class="font-mono text-xs text-gray-600 font-bold uppercase">
               Belum Mulai
             </div>
             <div class="font-display font-black text-2xl text-red-600 mt-0.5">
-              {resultsData.total_students -
-                resultsData.attempted_count -
-                (resultsData.in_progress_count ?? 0)}
+              {unattemptedCount}
             </div>
-          </div>
+          </button>
         </div>
 
         <div class="pt-2">
@@ -344,6 +483,7 @@
               "Nama Siswa",
               "Waktu Penyelesaian",
               "Skor Akhir",
+              "Aksi",
             ]}
           >
             {#each resultsData.results as item, idx (item.student_id)}
@@ -356,15 +496,31 @@
                   class="p-3 border-r-2 border-black font-mono font-bold text-xs"
                   >{item.identifier}</td
                 >
-                <td class="p-3 border-r-2 border-black font-bold text-xs"
-                  >{item.student_name}</td
-                >
+                <td class="p-3 border-r-2 border-black text-xs">
+                  <button
+                    type="button"
+                    onclick={() =>
+                      openStudentDetail(
+                        item.student_id,
+                        item.student_name,
+                        item.identifier
+                      )}
+                    class="text-left font-bold text-black hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1.5 group"
+                    title="Klik untuk melihat analisis jawaban siswa (salah/benar)"
+                  >
+                    <span>{item.student_name}</span>
+                    <Eye
+                      size={13}
+                      class="text-gray-400 group-hover:text-blue-700 transition-colors shrink-0"
+                    />
+                  </button>
+                </td>
                 <td class="p-3 border-r-2 border-black font-mono text-xs">
                   {item.completed_at
                     ? formatDateTimeWIB(item.completed_at)
                     : "—"}
                 </td>
-                <td class="p-3 font-mono font-black text-sm">
+                <td class="p-3 border-r-2 border-black font-mono font-black text-sm">
                   {#if item.score !== undefined && item.score !== null}
                     <span
                       class="bg-black text-primary px-2 py-0.5 border border-black"
@@ -376,9 +532,103 @@
                     >
                   {/if}
                 </td>
+                <td class="p-3 font-mono text-xs">
+                  <Button
+                    variant="surface"
+                    size="sm"
+                    onclick={() =>
+                      openStudentDetail(
+                        item.student_id,
+                        item.student_name,
+                        item.identifier
+                      )}
+                    class="flex items-center gap-1 text-[11px] py-1 px-2.5 font-bold"
+                    title="Analisis butir soal salah & benar"
+                  >
+                    <Eye size={12} />
+                    <span>Lihat Jawaban</span>
+                  </Button>
+                </td>
               </tr>
             {/each}
           </Table>
+        </div>
+      {/if}
+
+      {#if activeTab === "belum"}
+        {@const filteredUnattempted = unattemptedList.filter(
+          (s) =>
+            s.student_name.toLowerCase().includes(searchUnattemptedQuery.toLowerCase()) ||
+            s.identifier.toLowerCase().includes(searchUnattemptedQuery.toLowerCase())
+        )}
+
+        <div class="border-[3px] border-black bg-white shadow-brutal p-4 sm:p-5 flex flex-col gap-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b-2 border-black">
+            <div>
+              <h3 class="font-display font-black text-lg uppercase tracking-wide">
+                Daftar Siswa Belum Mengerjakan ({unattemptedList.length} Siswa)
+              </h3>
+              <p class="font-body text-xs text-gray-600">
+                Siswa terdaftar di kelas yang belum memulai atau belum mengirimkan jawaban kuis ini.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              {#if unattemptedList.length > 0}
+                <Button
+                  variant="surface"
+                  size="sm"
+                  onclick={copyUnattemptedNames}
+                  class="flex items-center gap-1.5"
+                  title="Salin daftar siswa untuk diumumkan ke kelas"
+                >
+                  {#if copied}
+                    <Check size={14} class="text-emerald-600" />
+                    <span>Tersalin!</span>
+                  {:else}
+                    <Copy size={14} />
+                    <span>Salin Daftar Siswa</span>
+                  {/if}
+                </Button>
+              {/if}
+            </div>
+          </div>
+
+          {#if unattemptedList.length === 0}
+            <EmptyState
+              icon={CheckCircle2}
+              title="Semua Siswa Sudah Mengerjakan!"
+              description="Seluruh siswa yang terdaftar di kelas ini sudah mulai atau menyelesaikan kuis ini."
+            />
+          {:else}
+            <div class="w-full sm:max-w-xs">
+              <Input
+                placeholder="Cari NIS atau Nama Siswa..."
+                bind:value={searchUnattemptedQuery}
+                class="font-body text-xs"
+              />
+            </div>
+
+            {#if filteredUnattempted.length === 0}
+              <EmptyState
+                icon={Search}
+                title="Tidak Ditemukan"
+                description={`Tidak ada siswa yang cocok dengan pencarian "${searchUnattemptedQuery}".`}
+              />
+            {:else}
+              <Table headers={["No", "NIS", "Nama Siswa", "Status"]}>
+                {#each filteredUnattempted as student, idx (student.student_id)}
+                  <tr class="hover:bg-red-50/50 transition-colors">
+                    <td class="p-3 border-r-2 border-black font-mono font-bold text-xs">{idx + 1}</td>
+                    <td class="p-3 border-r-2 border-black font-mono font-bold text-xs">{student.identifier}</td>
+                    <td class="p-3 border-r-2 border-black font-bold text-xs">{student.student_name}</td>
+                    <td class="p-3 text-xs">
+                      <Badge tone="danger">Belum Mulai</Badge>
+                    </td>
+                  </tr>
+                {/each}
+              </Table>
+            {/if}
+          {/if}
         </div>
       {/if}
 
@@ -522,9 +772,23 @@
                       </td>
                       <td class="p-3 border-r-2 border-black">
                         <div class="flex items-center gap-2 flex-wrap">
-                          <span class="font-bold text-sm"
-                            >{entry.student_name}</span
+                          <button
+                            type="button"
+                            onclick={() =>
+                              openStudentDetail(
+                                entry.student_id,
+                                entry.student_name,
+                                entry.identifier
+                              )}
+                            class="text-left font-bold text-sm text-black hover:text-blue-700 hover:underline cursor-pointer flex items-center gap-1 group"
+                            title="Klik untuk melihat analisis jawaban siswa"
                           >
+                            <span>{entry.student_name}</span>
+                            <Eye
+                              size={12}
+                              class="text-gray-400 group-hover:text-blue-700 transition-colors shrink-0"
+                            />
+                          </button>
                           {#if perfect}<Badge tone="success"
                               ><CheckCircle2 size={12} class="inline mr-1" /> Sempurna</Badge
                             >{/if}
@@ -563,3 +827,24 @@
     </div>
   {/if}
 </AppShell>
+
+<DetailJawabanSiswaModal
+  bind:open={showStudentDetailModal}
+  {quizId}
+  studentId={selectedStudentId}
+  studentName={selectedStudentName}
+  identifier={selectedStudentIdentifier}
+/>
+
+<ImportSpreadsheetQuizModal
+  bind:open={showSpreadsheetModal}
+  {quizId}
+  quizTitle={resultsData?.quiz_title || ""}
+  classId={resultsData?.class_id}
+  className={resultsData?.class_name}
+  spreadsheetId={resultsData?.spreadsheet_id}
+  spreadsheetUrl={resultsData?.spreadsheet_url}
+  attemptedCount={resultsData?.attempted_count || 0}
+  totalStudents={resultsData?.total_students || 0}
+/>
+

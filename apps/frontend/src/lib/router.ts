@@ -50,7 +50,9 @@ export const routes = {
   '/guru/tugas/:id/nilai': guard(GuruNilaiTugas, ['teacher']),
   '/guru/quiz': guard(GuruQuiz, ['teacher']),
   '/guru/quiz/buat': guard(GuruQuizBuat, ['teacher']),
+  '/guru/quiz/:id/edit': guard(GuruQuizBuat, ['teacher']),
   '/guru/quiz/:id/hasil': guard(GuruQuizHasil, ['teacher']),
+
   '/guru/materi': guard(GuruMateri, ['teacher']),
   '/guru/materi/buat': guard(GuruMateriBuat, ['teacher']),
   '/guru/nilai': guard(GuruNilai, ['teacher']),

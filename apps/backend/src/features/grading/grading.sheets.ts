@@ -25,7 +25,7 @@ export const syncGradeToSheet = async (
   studentNis: string,
   studentName: string,
   assignmentTitle: string,
-  score: number
+  score: number | string
 ) => {
   const cleanId = extractSpreadsheetId(spreadsheetId);
   if (!cleanId) {

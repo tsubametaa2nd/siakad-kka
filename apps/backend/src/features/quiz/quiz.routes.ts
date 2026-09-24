@@ -3,15 +3,15 @@ import { Elysia } from "elysia";
 import { authGuard, requireRole } from "../../shared/middleware/auth";
 import { ok } from "../../shared/utils/response";
 import * as quizService from "./quiz.service";
-import { attemptQuizSchema, createQuizSchema, startQuizSchema } from "./quiz.schema";
+import { attemptQuizSchema, createQuizSchema, startQuizSchema, updateQuizSchema } from "./quiz.schema";
 
 export const quizRoutes = new Elysia({ prefix: "/quiz" })
   .use(authGuard)
   .get("/class/:classId", async ({ user, params }) => ok(await quizService.getClassQuizzes(user.id, user.role, params.classId)))
+  .get("/:id", async ({ user, params }) => ok(await quizService.getQuizDetail(user.id, user.role, params.id)))
   .guard({ beforeHandle: requireRole("student") }, (app) =>
     app
       .get("/my", async ({ user, query }) => ok(await quizService.getStudentQuizzes(user.id, (query as any).class_id)))
-      .get("/:id", async ({ user, params }) => ok(await quizService.getQuizForStudent(user.id, params.id)))
       .post("/start", async ({ user, body }) => ok(await quizService.startQuiz(user.id, body)), { body: startQuizSchema })
       .post("/attempt", async ({ user, body }) => ok(await quizService.submitAttempt(user.id, body)), { body: attemptQuizSchema })
       .patch("/attempt/progress", async ({ user, body }) => {
@@ -23,7 +23,13 @@ export const quizRoutes = new Elysia({ prefix: "/quiz" })
   .guard({ beforeHandle: requireRole("teacher") }, (app) =>
     app
       .post("", async ({ user, body }) => ok(await quizService.createQuiz(user.id, body)), { body: createQuizSchema })
+      .put("/:id", async ({ user, params, body }) => ok(await quizService.updateQuiz(user.id, params.id, body as any)), { body: updateQuizSchema })
+      .delete("/:id", async ({ user, params, query }) => ok(await quizService.deleteQuiz(user.id, params.id, (query as any).force === "true")))
       .get("/:id/results", async ({ user, params }) => ok(await quizService.getQuizResults(user.id, params.id)))
+      .get("/:id/student/:studentId", async ({ user, params }) => ok(await quizService.getStudentAttemptDetail(user.id, params.id, params.studentId)))
       .get("/:id/leaderboard", async ({ user, params }) => ok(await quizService.getQuizLeaderboard(user.id, params.id)))
+      .post("/:id/sync-sheets", async ({ user, params, body }) => ok(await quizService.syncQuizGradesToSpreadsheet(user.id, params.id, (body || {}) as any)))
   );
+
+
 
